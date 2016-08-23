@@ -66,6 +66,10 @@ public class WorldManager {
 		return config.getReplaceables();
 	}
 	
+	public static int getMaxProcesses() {
+		return config.getMaxProcesses();
+	}
+	
 	public static void reloadConfig() {
 		config.reloadConfig();
 		WorldGeneration.instance.loadReplacables();

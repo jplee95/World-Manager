@@ -8,6 +8,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.primitives.Doubles;
+import com.jplee.worldmanager.config.GenConfig;
 import com.jplee.worldmanager.gen.WorldGeneration;
 import com.jplee.worldmanager.util.Replaceable;
 
@@ -39,14 +40,20 @@ public class WorldEventManager {
 			if(event.phase == TickEvent.Phase.END) {
 				Collection<ChunkPos> completion = Lists.newArrayList(WorldGeneration.instance.getPendingForWorld(w));
 				if(completion == null) return;
+				int count = 0;
 				for(ChunkPos pos : completion) {
 					Chunk chunk = w.getChunkFromChunkCoords(pos.chunkXPos, pos.chunkZPos);
-					if(chunk.isPopulated()) {
+					if(chunk.isPopulated() && chunk.isLoaded()) {
 						boolean chunkModified = WorldGeneration.instance.runProcessChunk(w, pos);
 						if(chunkModified) {
 							chunk.resetRelightChecks();
 						}
 						WorldGeneration.instance.removePendingForChunk(w, chunk);
+						count++;
+					}
+					if(count >= WorldManager.getMaxProcesses() && WorldManager.getMaxProcesses() != -1) {
+						WorldManager.info("Maximum amount of proccesses have been reached this tick %s", count);
+						break;
 					}
 				}
 			}

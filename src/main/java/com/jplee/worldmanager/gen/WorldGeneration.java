@@ -67,7 +67,7 @@ public class WorldGeneration {
 				Multimap<Block, Replaceable> blocks = replaceables.get(dimension);
 				if(blocks == null) {
 					replaceables.put(dimension, HashMultimap.<Block,Replaceable>create());
-					blocks = replaceables.get(dimension); 
+					blocks = replaceables.get(dimension);
 				}
 				blocks.put(block, replaceable);
 			}
@@ -209,16 +209,21 @@ public class WorldGeneration {
 				Collection<Replaceable> replaceables = getReplaceables(dimension, blockState.getBlock());
 				if(replaceables != null) {
 					for(Replaceable rep : replaceables) {
-						double random = (Double) rep.getProperty("random");
-						IBlockState replace = rep.getPropertyAsBlockState("replace");
-						if(rep.isAdequateState("block", blockState) && (fmlRandom.nextDouble() < random || random == 1.0)) {
-//							WorldManager.info("Replacing %s at (%s %s %s)", blockState.getBlock().getLocalizedName(), pos.getX(), pos.getY(), pos.getZ());
-							if(replace != null) {
-								world.setBlockState(pos, replace);
-							} else {
-								world.setBlockToAir(pos);
+						int min = rep.getPropertyAsInt("min");
+						int max = rep.getPropertyAsInt("max");
+						
+						if((min >= pos.getY() || min == -1) && (max <= pos.getY() || max == -1)) {
+							double random = (Double) rep.getProperty("random");
+							IBlockState replace = rep.getPropertyAsBlockState("replace");
+							if(rep.isAdequateState("block", blockState) && (fmlRandom.nextDouble() < random || random == 1.0)) {
+	//							WorldManager.info("Replacing %s at (%s %s %s)", blockState.getBlock().getLocalizedName(), pos.getX(), pos.getY(), pos.getZ());
+								if(replace != null) {
+									world.setBlockState(pos, replace);
+								} else {
+									world.setBlockToAir(pos);
+								}
+								return true;
 							}
-							return true;
 						}
 					}
 				}
