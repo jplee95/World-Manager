@@ -1,7 +1,6 @@
 package com.jplee.worldmanager.gen;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -11,29 +10,21 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
 import com.google.common.primitives.Doubles;
 import com.jplee.worldmanager.WorldManager;
 import com.jplee.worldmanager.util.Replaceable;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.state.BlockStateBase;
-import net.minecraft.block.state.BlockWorldState;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.block.state.pattern.BlockStateMatcher;
-import net.minecraft.client.renderer.block.statemap.BlockStateMapper;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.IChunkGenerator;
-import net.minecraft.world.chunk.IChunkProvider;import net.minecraftforge.client.MinecraftForgeClient;
-import net.minecraftforge.fml.client.FMLClientHandler;
+import net.minecraft.world.chunk.IChunkProvider;
 import net.minecraftforge.fml.common.IWorldGenerator;
 import net.minecraftforge.fml.common.registry.GameRegistry;
-import net.minecraftforge.fml.server.FMLServerHandler;
-import scala.xml.dtd.ANY;
 
 public class WorldGeneration {
 
@@ -111,7 +102,9 @@ public class WorldGeneration {
 	
 	public Collection<Replaceable> getReplaceables(int world, Block block) {
 		List<Replaceable> rep = Lists.newArrayList();
-		rep.addAll(sortedReplaceables.get(ANY_DIMENSION).get(block));
+		if(sortedReplaceables.get(ANY_DIMENSION) != null) {
+			rep.addAll(sortedReplaceables.get(ANY_DIMENSION).get(block));
+		}
 		Multimap<Block, Replaceable> worldReplace = sortedReplaceables.get(world);
 		if(worldReplace != null) {
 			rep.addAll(worldReplace.get(block));
@@ -212,7 +205,7 @@ public class WorldGeneration {
 						int min = rep.getPropertyAsInt("min");
 						int max = rep.getPropertyAsInt("max");
 						
-						if((min >= pos.getY() || min == -1) && (max <= pos.getY() || max == -1)) {
+						if((min <= pos.getY() || min == -1) && (max >= pos.getY() || max == -1)) {
 							double random = (Double) rep.getProperty("random");
 							IBlockState replace = rep.getPropertyAsBlockState("replace");
 							if(rep.isAdequateState("block", blockState) && (fmlRandom.nextDouble() < random || random == 1.0)) {

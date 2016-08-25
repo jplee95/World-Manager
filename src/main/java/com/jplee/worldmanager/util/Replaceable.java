@@ -1,38 +1,19 @@
 package com.jplee.worldmanager.util;
 
 import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import com.jplee.worldmanager.WorldManager;
-import com.sun.xml.internal.bind.v2.runtime.unmarshaller.WildcardLoader;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.BlockFlowerPot;
-import net.minecraft.block.BlockRedFlower;
-import net.minecraft.block.BlockStone;
-import net.minecraft.block.properties.IProperty;
-import net.minecraft.block.state.BlockStateBase;
-import net.minecraft.block.state.BlockStateContainer;
-import net.minecraft.block.state.BlockWorldState;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.Util;
-import net.minecraft.world.gen.structure.template.PlacementSettings;
-import net.minecraft.world.gen.structure.template.Template;
-import net.minecraft.world.gen.structure.template.TemplateManager;
-import net.minecraftforge.client.model.BlockStateLoader;
-import scala.reflect.internal.Trees.This;
 
 public class Replaceable {
 
