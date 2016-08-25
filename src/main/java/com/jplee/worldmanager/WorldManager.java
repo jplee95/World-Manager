@@ -30,6 +30,7 @@ import net.minecraft.world.WorldServer;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.IChunkGenerator;
 import net.minecraft.world.chunk.IChunkProvider;
+import net.minecraft.world.gen.feature.WorldGenerator;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.world.ChunkDataEvent;
 import net.minecraftforge.event.world.ChunkEvent;
@@ -109,7 +110,7 @@ public class WorldManager {
 
 	@Mod.EventHandler
 	public void serverLoad(FMLServerStartingEvent event) {
-//		event.registerServerCommand(new CommandWorldManager());
+		event.registerServerCommand(new CommandWorldManager());
 	}
 	
 }

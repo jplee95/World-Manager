@@ -166,6 +166,7 @@ public class Replaceable {
 					} 
 					if(match.group(1).equals("oredict")) {
 						replaceable.addBoolean("oredict", Boolean.parseBoolean(match.group(2)));
+						WorldManager.warning("Property %s in %s has not been implemented", match.group(1), string);
 						continue;
 					}
 					if(match.group(1).equals("dimension")) {
@@ -182,6 +183,12 @@ public class Replaceable {
 					}
 					if(match.group(1).equals("loot")) {
 						replaceable.addString("loot", match.group(2));
+						WorldManager.warning("Property %s in %s has not been implemented", match.group(1), string);
+						continue;
+					}
+					if(match.group(1).equals("match")) {
+						replaceable.addString("match", match.group(2));
+						WorldManager.warning("Property %s in %s has not been implemented", match.group(1), string);
 						continue;
 					}
 					WorldManager.error("Property %s was not recognized in %s", match.group(1), string);

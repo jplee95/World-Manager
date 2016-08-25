@@ -7,9 +7,15 @@ import java.util.List;
 import com.jplee.worldmanager.WorldManager;
 import com.jplee.worldmanager.gen.WorldGeneration;
 
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
+import net.minecraft.command.CommandGive;
 import net.minecraft.command.ICommandSender;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.item.ItemBlock;
+import net.minecraft.item.ItemStack;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
@@ -56,6 +62,21 @@ public class CommandWorldManager extends CommandBase {
 			} else if(args[0].equals("reloadconfig") && args.length == 1) {
 				WorldManager.reloadConfig();
 				notifyCommandListener(sender, this, "commands.wm.reloadconfig.complete", new Object[0]);
+			} else if(args[0].equals("getstates") && args.length == 1) {
+				EntityPlayer entityplayer = getPlayer(server, sender, sender.getName());
+				ItemStack stack = entityplayer.getHeldItemMainhand();
+				if(stack != null) {
+					if(stack.getItem() instanceof ItemBlock) {
+						ItemBlock itemBlock = (ItemBlock) stack.getItem();
+						for(IBlockState state : itemBlock.block.getBlockState().getValidStates()) {
+							notifyCommandListener(sender, this, state.toString(), new Object[0]);
+						}
+					} else {
+						notifyCommandListener(sender, this, "commands.wm.getstates.notblock", new Object[0]);
+					}
+				} else {
+					notifyCommandListener(sender, this, "commands.wm.getstates.notblock", new Object[0]);
+				}
 			} else {
 				notifyCommandListener(sender, this, "commands.wm.usage", new Object[0]);
 			}
@@ -67,6 +88,6 @@ public class CommandWorldManager extends CommandBase {
 	
 	@Override
 	public List<String> getTabCompletionOptions(MinecraftServer server, ICommandSender sender, String[] args, BlockPos pos) {
-		return args.length == 1 ? getListOfStringsMatchingLastWord(args, "processchunk", "reloadconfig") : Collections.<String>emptyList();
+		return args.length == 1 ? getListOfStringsMatchingLastWord(args, "processchunk", "reloadconfig", "getstates") : Collections.<String>emptyList();
 	}
 }
