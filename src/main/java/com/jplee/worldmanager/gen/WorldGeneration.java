@@ -32,15 +32,15 @@ public class WorldGeneration {
 	
 	public static final int ANY_DIMENSION = -93578231;
 	
-	private Multimap<Integer,ChunkPos> unloadedReplacementChunks;
-	private Multimap<Integer,ChunkPos> chunksReplacementPending;
+	private Multimap<Integer,ChunkPos> unloadedPendingChunks;
+	private Multimap<Integer,ChunkPos> loadedPendingChunks;
 
 	private Map<Integer,Multimap<Block,Replaceable>> modInstalledReplaceables;
 	private Map<Integer,Multimap<Block,Replaceable>> sortedReplaceables;
 
 	private WorldGeneration() {
-		this.chunksReplacementPending = HashMultimap.create();
-		this.unloadedReplacementChunks = HashMultimap.create();
+		this.loadedPendingChunks = HashMultimap.create();
+		this.unloadedPendingChunks = HashMultimap.create();
 		this.modInstalledReplaceables = Maps.newHashMap();
 		this.sortedReplaceables = Maps.newHashMap();
 	}
@@ -116,38 +116,70 @@ public class WorldGeneration {
 		return !sortedReplaceables.isEmpty();
 	}
 
-	public void addNewPendingChunk(World world, Chunk chunk) {
-		chunksReplacementPending.put(world.provider.getDimension(), chunk.getChunkCoordIntPair());
-	}
-	
-	public Collection<ChunkPos> getPendingForWorld(World world) {
-		return chunksReplacementPending.get(world.provider.getDimension());
-	}
-	
-	public void removePendingForChunk(World world, Chunk chunk) {
-		chunksReplacementPending.remove(world.provider.getDimension(), chunk.getChunkCoordIntPair());
-	}
-	
-	public boolean unqueueChunk(World world, Chunk chunk) {
-		if(chunksReplacementPending.containsEntry(world.provider.getDimension(), chunk.getChunkCoordIntPair())) {
-			removePendingForChunk(world, chunk);
-			unloadedReplacementChunks.put(world.provider.getDimension(), chunk.getChunkCoordIntPair());
-			return true;
-		}
-		return false;
-	}
-	
-	public boolean requeueChunk(World world, Chunk chunk) {
-		if(unloadedReplacementChunks.containsEntry(world.provider.getDimension(), chunk.getChunkCoordIntPair())) {
-			unloadedReplacementChunks.remove(world.provider.getDimension(), chunk.getChunkCoordIntPair());
-			addNewPendingChunk(world, chunk);
-			return true;
-		}
-		return false;
+	public Collection<ChunkPos> getLoadedPendingForWorld(World world) {
+		return loadedPendingChunks.get(world.provider.getDimension());
 	}
 	
 	public Collection<ChunkPos> getUnloadedPendingForWorld(World world) {
-		return unloadedReplacementChunks.get(world.provider.getDimension());
+		return unloadedPendingChunks.get(world.provider.getDimension());
+	}
+	
+	public void addPendingForWorld(World world, Chunk chunk, boolean loaded) {
+		if(loaded) {
+			loadedPendingChunks.put(world.provider.getDimension(), chunk.getChunkCoordIntPair());
+		} else {
+			unloadedPendingChunks.put(world.provider.getDimension(), chunk.getChunkCoordIntPair());
+		}
+	}
+	
+	public void removePendingForWorld(World world, Chunk chunk, boolean loaded) {
+		if(loaded) {
+			loadedPendingChunks.remove(world.provider.getDimension(), chunk.getChunkCoordIntPair());
+		} else {
+			unloadedPendingChunks.remove(world.provider.getDimension(), chunk.getChunkCoordIntPair());
+		}
+		
+	}
+	
+	public boolean unqueueChunk(World world, Chunk chunk) {
+		if(loadedPendingChunks.containsEntry(world.provider.getDimension(), chunk.getChunkCoordIntPair())) {
+			loadedPendingChunks.remove(world.provider.getDimension(), chunk.getChunkCoordIntPair());
+			addPendingForWorld(world, chunk, false);
+			return true;
+		}
+		return false;
+	}
+
+	public boolean requeueChunk(World world, Chunk chunk) {
+		if(unloadedPendingChunks.containsEntry(world.provider.getDimension(), chunk.getChunkCoordIntPair())) {
+			unloadedPendingChunks.remove(world.provider.getDimension(), chunk.getChunkCoordIntPair());
+			addPendingForWorld(world, chunk, true);
+			return true;
+		}
+		return false;
+	}
+	
+	public void clearQueuedChunks() {
+		loadedPendingChunks.clear();
+		unloadedPendingChunks.clear();
+	}
+	
+	public int getTotalQueuedChunkCount(int dimension) {
+		return getLoadedQueuedChunkCount(dimension) + getUnloadedQueuedChunkCount(dimension);
+	}
+	
+	public int getLoadedQueuedChunkCount(int dimension) {
+		Collection<ChunkPos> pos = loadedPendingChunks.get(dimension);
+		if(pos != null)
+			return pos.size();
+		return 0;
+	}
+	
+	public int getUnloadedQueuedChunkCount(int dimension) {
+		Collection<ChunkPos> pos = unloadedPendingChunks.get(dimension);
+		if(pos != null)
+			return pos.size();
+		return 0;
 	}
 	
 	public boolean isQueuedChunk(World world, Chunk chunk) {
@@ -155,18 +187,18 @@ public class WorldGeneration {
 	}
 	
 	public boolean isLoadedQueuedChunk(World world, Chunk chunk) {
-		return chunksReplacementPending.containsEntry(world.provider.getDimension(), chunk.getChunkCoordIntPair());
+		return loadedPendingChunks.containsEntry(world.provider.getDimension(), chunk.getChunkCoordIntPair());
 	}
 	
 	public boolean isUnloadedQueuedChunk(World world, Chunk chunk) {
-		return unloadedReplacementChunks.containsEntry(world.provider.getDimension(), chunk.getChunkCoordIntPair());
+		return unloadedPendingChunks.containsEntry(world.provider.getDimension(), chunk.getChunkCoordIntPair());
 	}
 	
 	public class GenWorld implements IWorldGenerator {
 
 		@Override
 		public void generate(Random random, int chunkX, int chunkZ, World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider) {
-			chunksReplacementPending.put(world.provider.getDimension(), new ChunkPos(chunkX, chunkZ));
+			loadedPendingChunks.put(world.provider.getDimension(), new ChunkPos(chunkX, chunkZ));
 		}
 	}
 	

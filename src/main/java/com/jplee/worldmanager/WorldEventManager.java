@@ -7,9 +7,11 @@ import com.jplee.worldmanager.gen.WorldGeneration;
 
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.math.ChunkPos;
+import net.minecraft.world.ServerWorldEventHandler;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.chunk.Chunk;
+import net.minecraftforge.event.terraingen.WorldTypeEvent;
 import net.minecraftforge.event.world.ChunkDataEvent;
 import net.minecraftforge.event.world.ChunkEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -29,7 +31,7 @@ public class WorldEventManager {
 			return;
 		} else {
 			if(event.phase == TickEvent.Phase.END) {
-				Collection<ChunkPos> completion = Lists.newArrayList(WorldGeneration.instance.getPendingForWorld(w));
+				Collection<ChunkPos> completion = Lists.newArrayList(WorldGeneration.instance.getLoadedPendingForWorld(w));
 				if(completion == null) return;
 				int count = 0;
 				for(ChunkPos pos : completion) {
@@ -39,7 +41,7 @@ public class WorldEventManager {
 						if(chunkModified) {
 							chunk.resetRelightChecks();
 						}
-						WorldGeneration.instance.removePendingForChunk(w, chunk);
+						WorldGeneration.instance.removePendingForWorld(w, chunk, true);
 						count++;
 					}
 					if(count >= WorldManager.getMaxProcesses() && WorldManager.getMaxProcesses() != -1) {
@@ -58,7 +60,7 @@ public class WorldEventManager {
 		
 		if(compound != null) {
 			if(compound.hasKey(WorldManager.CHUNK_REPLACE_TAG)) {
-				WorldGeneration.instance.addNewPendingChunk(world, event.getChunk());
+				WorldGeneration.instance.addPendingForWorld(world, event.getChunk(), true);
 			}
 		}
 	}
@@ -75,6 +77,7 @@ public class WorldEventManager {
 			}
 			if(!compound.hasKey(WorldManager.CHUNK_REPLACE_TAG)) {
 				compound.setBoolean(WorldManager.CHUNK_REPLACE_TAG, true);
+				WorldGeneration.instance.removePendingForWorld(world, event.getChunk(), false);
 			}
 		}
 	}
@@ -92,4 +95,6 @@ public class WorldEventManager {
 			WorldGeneration.instance.unqueueChunk(event.getWorld(), event.getChunk());
 		}
 	}
+	
+	
 }

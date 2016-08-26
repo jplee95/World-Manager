@@ -52,6 +52,7 @@ public class GenConfig {
 					  + "EXPERAMENTAL");
 		prop.setMinValue(-1);
 		prop.setMaxValue(256);
+		prop.requiresMcRestart();
 		maxProcesses = prop.getInt();
 		
 		config.save();
@@ -61,7 +62,7 @@ public class GenConfig {
 		config.load();
 		Property prop;
 
-		prop = config.get("replace", "general", new String[]{ });
+		prop = config.get("general", "replace", new String[]{ });
 		this.replaceables = prop.getStringList();
 	}
 	

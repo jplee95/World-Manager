@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import com.jplee.worldmanager.WorldEventManager;
 import com.jplee.worldmanager.WorldManager;
 import com.jplee.worldmanager.gen.WorldGeneration;
 
@@ -60,6 +61,8 @@ public class CommandWorldManager extends CommandBase {
 			} else if(args[0].equals("reloadconfig") && args.length == 1) {
 				WorldManager.reloadConfig();
 				notifyCommandListener(sender, this, "commands.wm.reloadconfig.complete", new Object[0]);
+			} else if(args[0].equals("toggledebug") && args.length == 1) {
+				WorldManager.showDebug(!WorldManager.isDebugShowing());
 			} else if(args[0].equals("getstates") && args.length == 1) {
 				EntityPlayer entityplayer = getPlayer(server, sender, sender.getName());
 				ItemStack stack = entityplayer.getHeldItemMainhand();
@@ -86,6 +89,6 @@ public class CommandWorldManager extends CommandBase {
 	
 	@Override
 	public List<String> getTabCompletionOptions(MinecraftServer server, ICommandSender sender, String[] args, BlockPos pos) {
-		return args.length == 1 ? getListOfStringsMatchingLastWord(args, "processchunk", "reloadconfig", "getstates") : Collections.<String>emptyList();
+		return args.length == 1 ? getListOfStringsMatchingLastWord(args, "processchunk", "reloadconfig", "getstates", "toggledebug") : Collections.<String>emptyList();
 	}
 }

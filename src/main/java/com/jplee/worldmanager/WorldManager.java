@@ -5,14 +5,19 @@ import org.apache.logging.log4j.Logger;
 import com.jplee.worldmanager.command.CommandWorldManager;
 import com.jplee.worldmanager.config.GenConfig;
 import com.jplee.worldmanager.gen.WorldGeneration;
+import com.jplee.worldmanager.gui.GuiChunkDebugEvent;
 
 import net.minecraft.block.BlockChest;
+import net.minecraft.entity.boss.EntityWither;
+import net.minecraft.entity.monster.EntitySkeleton;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
+import net.minecraftforge.fml.common.event.FMLServerStoppedEvent;
+import net.minecraftforge.fml.relauncher.Side;
 
 @Mod(modid=WorldManager.MODID, name=WorldManager.NAME, version=WorldManager.VERSION, dependencies=WorldManager.FORGE_VERSION,
 	 acceptedMinecraftVersions=WorldManager.MINECRAFT_VERSION, useMetadata=false)
@@ -27,6 +32,16 @@ public class WorldManager {
 	
 	private static Logger logger;
 	private static GenConfig config;
+	
+	private static boolean showDebugInfo = false;
+	
+	public static void showDebug(boolean show) {
+		showDebugInfo = show;
+	}
+	
+	public static boolean isDebugShowing() {
+		return showDebugInfo;
+	}
 	
 	@Mod.Instance
 	public static WorldManager instance;
@@ -70,6 +85,9 @@ public class WorldManager {
 	
 	@Mod.EventHandler
 	public void init(FMLInitializationEvent event) {
+		if(event.getSide() == Side.CLIENT) {
+			MinecraftForge.EVENT_BUS.register(new GuiChunkDebugEvent());
+		}
 	}
 	
 	@Mod.EventHandler
@@ -77,8 +95,13 @@ public class WorldManager {
 	}
 
 	@Mod.EventHandler
-	public void serverLoad(FMLServerStartingEvent event) {
+	public void serverStarting(FMLServerStartingEvent event) {
 		event.registerServerCommand(new CommandWorldManager());
 	}
 	
+	@Mod.EventHandler
+	public void serverStopped(FMLServerStoppedEvent event) {
+		info("Server Stoping", new Object[0]);
+		WorldGeneration.instance.clearQueuedChunks();
+	}
 }
