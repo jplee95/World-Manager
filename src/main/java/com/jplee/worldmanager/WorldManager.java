@@ -11,6 +11,7 @@ import net.minecraft.block.BlockChest;
 import net.minecraft.entity.boss.EntityWither;
 import net.minecraft.entity.monster.EntitySkeleton;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.fml.common.DummyModContainer;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
@@ -26,7 +27,7 @@ public class WorldManager {
 	public static final String MODID = "worldmanager";
 	public static final String VERSION = "1.0.1";
 	public static final String FORGE_VERSION = "required-after:Forge@[12.18.1.2039,)";
-	public static final String MINECRAFT_VERSION = "[1.9.4,1.10.2]";
+	public static final String MINECRAFT_VERSION = "[1.10.2]";
 	
 	public static final String CHUNK_REPLACE_TAG = "wmReplace";
 	

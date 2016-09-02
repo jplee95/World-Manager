@@ -116,6 +116,10 @@ public class WorldGeneration {
 		return !sortedReplaceables.isEmpty();
 	}
 
+	public boolean isReplaceable(World world, IBlockState blockState) {
+		return sortedReplaceables.get(world.provider.getDimension()).get(blockState.getBlock()) != null;
+	}
+	
 	public Collection<ChunkPos> getLoadedPendingForWorld(World world) {
 		return loadedPendingChunks.get(world.provider.getDimension());
 	}
@@ -228,27 +232,32 @@ public class WorldGeneration {
 	
 	private boolean replacementProcess(World world, Random fmlRandom, BlockPos pos) {
 		if(this.hasReplacables()) {
-			IBlockState blockState = world.getBlockState(pos);
-			int dimension = world.provider.getDimension();
-			if(!blockState.getBlock().equals(Blocks.AIR)) {
-				Collection<Replaceable> replaceables = getReplaceables(dimension, blockState.getBlock());
-				if(replaceables != null) {
-					for(Replaceable rep : replaceables) {
-						int min = rep.getPropertyAsInt("min");
-						int max = rep.getPropertyAsInt("max");
-						
-						if((min <= pos.getY() || min == -1) && (max >= pos.getY() || max == -1)) {
-							double random = (Double) rep.getProperty("random");
-							IBlockState replace = rep.getPropertyAsBlockState("replace");
-							if(rep.isAdequateState("block", blockState) && (fmlRandom.nextDouble() < random || random == 1.0)) {
-	//							WorldManager.info("Replacing %s at (%s %s %s)", blockState.getBlock().getLocalizedName(), pos.getX(), pos.getY(), pos.getZ());
-								if(replace != null) {
-									world.setBlockState(pos, replace);
-								} else {
-									world.setBlockToAir(pos);
-								}
-								return true;
+			return processBlock(world, fmlRandom, pos);
+		}
+		return false;
+	}
+	
+	public boolean processBlock(World world, Random random, BlockPos pos) {
+		IBlockState blockState = world.getBlockState(pos);
+		int dimension = world.provider.getDimension();
+		if(!blockState.getBlock().equals(Blocks.AIR)) {
+			Collection<Replaceable> replaceables = getReplaceables(dimension, blockState.getBlock());
+			if(replaceables != null) {
+				for(Replaceable rep : replaceables) {
+					int min = rep.getPropertyAsInt("min");
+					int max = rep.getPropertyAsInt("max");
+					
+					if((min <= pos.getY() || min == -1) && (max >= pos.getY() || max == -1)) {
+						double chance = (Double) rep.getProperty("random");
+						IBlockState replace = rep.getPropertyAsBlockState("replace");
+						if(rep.isAdequateState("block", blockState) && (random.nextDouble() < chance || chance == 1.0)) {
+//							WorldManager.info("Replacing %s at (%s %s %s)", blockState.getBlock().getLocalizedName(), pos.getX(), pos.getY(), pos.getZ());
+							if(replace != null) {
+								world.setBlockState(pos, replace);
+							} else {
+								world.setBlockToAir(pos);
 							}
+							return true;
 						}
 					}
 				}
