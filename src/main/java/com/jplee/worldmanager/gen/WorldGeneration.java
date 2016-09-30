@@ -243,9 +243,9 @@ public class WorldGeneration {
 							if(rep.isAdequateState("block", blockState) && (fmlRandom.nextDouble() < random || random == 1.0)) {
 	//							WorldManager.info("Replacing %s at (%s %s %s)", blockState.getBlock().getLocalizedName(), pos.getX(), pos.getY(), pos.getZ());
 								if(replace != null) {
-									world.setBlockState(pos, replace);
+									world.setBlockState(pos, replace, 2);
 								} else {
-									world.setBlockToAir(pos);
+									world.setBlockState(pos, Blocks.AIR.getDefaultState(), 2);
 								}
 								return true;
 							}

@@ -1,4 +1,5 @@
 commands.wm.usage=/wm <command> args...
-commands.wm.processchunk.outofworld=The coordinates that were put in were out of world bounds.
-commands.wm.processchunk.complete=You have successfully processed this chunk.
+commands.wm.processchunk.outofworld=The coordinates that were put in were out of world bounds
+commands.wm.processchunk.complete=You have successfully processed this chunk
 commands.wm.reloadconfig.complete=Config has been reloaded
+commands.wm.getstates.notblock=The item selected is not a block
