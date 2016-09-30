@@ -11,8 +11,9 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.primitives.Doubles;
-import com.jplee.worldmanager.WorldManager;
-import com.jplee.worldmanager.util.Replaceable;
+
+import jplee.worldmanager.WorldManager;
+import jplee.worldmanager.util.Replaceable;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;

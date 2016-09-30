@@ -4,9 +4,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import com.jplee.worldmanager.WorldEventManager;
-import com.jplee.worldmanager.WorldManager;
-import com.jplee.worldmanager.gen.WorldGeneration;
+import jplee.worldmanager.WorldEventManager;
+import jplee.worldmanager.WorldManager;
+import jplee.worldmanager.gen.WorldGeneration;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.command.CommandBase;

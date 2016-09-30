@@ -3,7 +3,8 @@ package jplee.worldmanager;
 import java.util.Collection;
 
 import com.google.common.collect.Lists;
-import com.jplee.worldmanager.gen.WorldGeneration;
+
+import jplee.worldmanager.gen.WorldGeneration;
 
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.math.ChunkPos;

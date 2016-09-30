@@ -8,7 +8,8 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.collect.Maps;
-import com.jplee.worldmanager.WorldManager;
+
+import jplee.worldmanager.WorldManager;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;

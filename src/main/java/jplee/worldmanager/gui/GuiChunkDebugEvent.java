@@ -1,7 +1,7 @@
 package jplee.worldmanager.gui;
 
-import com.jplee.worldmanager.WorldManager;
-import com.jplee.worldmanager.gen.WorldGeneration;
+import jplee.worldmanager.WorldManager;
+import jplee.worldmanager.gen.WorldGeneration;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;

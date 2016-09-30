@@ -2,10 +2,10 @@ package jplee.worldmanager;
 
 import org.apache.logging.log4j.Logger;
 
-import com.jplee.worldmanager.command.CommandWorldManager;
-import com.jplee.worldmanager.config.GenConfig;
-import com.jplee.worldmanager.gen.WorldGeneration;
-import com.jplee.worldmanager.gui.GuiChunkDebugEvent;
+import jplee.worldmanager.command.CommandWorldManager;
+import jplee.worldmanager.config.GenConfig;
+import jplee.worldmanager.gen.WorldGeneration;
+import jplee.worldmanager.gui.GuiChunkDebugEvent;
 
 import net.minecraft.block.BlockChest;
 import net.minecraft.entity.boss.EntityWither;
