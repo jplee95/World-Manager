@@ -1,4 +1,4 @@
-package com.jplee.worldmanager.util;
+package jplee.worldmanager.util;
 
 import java.util.Map;
 import java.util.regex.Matcher;

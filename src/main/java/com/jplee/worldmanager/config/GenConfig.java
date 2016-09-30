@@ -1,4 +1,4 @@
-package com.jplee.worldmanager.config;
+package jplee.worldmanager.config;
 
 import java.io.File;
 

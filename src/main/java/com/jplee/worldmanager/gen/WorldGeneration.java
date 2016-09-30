@@ -1,4 +1,4 @@
-package com.jplee.worldmanager.gen;
+package jplee.worldmanager.gen;
 
 import java.util.Collection;
 import java.util.Comparator;

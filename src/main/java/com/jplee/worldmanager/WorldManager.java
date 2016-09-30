@@ -1,4 +1,4 @@
-package com.jplee.worldmanager;
+package jplee.worldmanager;
 
 import org.apache.logging.log4j.Logger;
 

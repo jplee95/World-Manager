@@ -1,4 +1,4 @@
-package com.jplee.worldmanager;
+package jplee.worldmanager;
 
 import java.util.Collection;
 

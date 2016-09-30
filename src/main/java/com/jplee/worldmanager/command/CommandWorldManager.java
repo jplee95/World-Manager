@@ -1,4 +1,4 @@
-package com.jplee.worldmanager.command;
+package jplee.worldmanager.command;
 
 import java.util.Arrays;
 import java.util.Collections;

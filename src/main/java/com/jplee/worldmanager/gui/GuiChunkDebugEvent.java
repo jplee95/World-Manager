@@ -1,4 +1,4 @@
-package com.jplee.worldmanager.gui;
+package jplee.worldmanager.gui;
 
 import com.jplee.worldmanager.WorldManager;
 import com.jplee.worldmanager.gen.WorldGeneration;
@@ -39,13 +39,13 @@ public class GuiChunkDebugEvent extends Gui {
 				drawString(fontRenderer, str, 2, start + i * 10, 0xFFFFFF);
 				i++;
 			}
-			
-			if(Minecraft.getSystemTime() >= this.debugUpdateTime + 1000L) {
-				WorldGeneration wg = WorldGeneration.instance;
-				int dim = Minecraft.getMinecraft().thePlayer.dimension;
-				debugInfo = "=== World Manager ===|Dimension: " + dim + "|Chunks Queued: " + wg.getLoadedQueuedChunkCount(dim);
-				this.debugUpdateTime += 1000L;
-			}
+		}
+		
+		if(Minecraft.getSystemTime() >= this.debugUpdateTime + 1000L) {
+			WorldGeneration wg = WorldGeneration.instance;
+			int dim = Minecraft.getMinecraft().thePlayer.dimension;
+			debugInfo = "=== World Manager ===|Dimension: " + dim + "|Chunks Queued: " + wg.getLoadedQueuedChunkCount(dim);
+			this.debugUpdateTime += 1000L;
 		}
 	}
 }
