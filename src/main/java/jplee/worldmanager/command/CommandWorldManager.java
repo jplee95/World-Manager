@@ -4,10 +4,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import jplee.worldmanager.WorldEventManager;
 import jplee.worldmanager.WorldManager;
 import jplee.worldmanager.gen.WorldGeneration;
-
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;

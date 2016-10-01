@@ -4,15 +4,15 @@ import java.util.Collection;
 
 import com.google.common.collect.Lists;
 
+import jplee.worldmanager.entity.EntityManager;
 import jplee.worldmanager.gen.WorldGeneration;
-
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.math.ChunkPos;
-import net.minecraft.world.ServerWorldEventHandler;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.chunk.Chunk;
-import net.minecraftforge.event.terraingen.WorldTypeEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.world.ChunkDataEvent;
 import net.minecraftforge.event.world.ChunkEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -22,7 +22,7 @@ import net.minecraftforge.fml.relauncher.Side;
 public class WorldEventManager {
 
 	@SubscribeEvent
-	public void onWorldTick(TickEvent.WorldTickEvent event) {
+	public void onWorldTick(TickEvent.WorldTickEvent event) { // TODO: Move stuff inside this to a better spot
 		if(event.side != Side.SERVER) {
 			return;
 		}
@@ -32,22 +32,24 @@ public class WorldEventManager {
 			return;
 		} else {
 			if(event.phase == TickEvent.Phase.END) {
-				Collection<ChunkPos> completion = Lists.newArrayList(WorldGeneration.instance.getLoadedPendingForWorld(w));
-				if(completion == null) return;
-				int count = 0;
-				for(ChunkPos pos : completion) {
-					Chunk chunk = w.getChunkFromChunkCoords(pos.chunkXPos, pos.chunkZPos);
-					if(chunk.isPopulated() && chunk.isLoaded()) {
-						boolean chunkModified = WorldGeneration.instance.runProcessChunk(w, pos);
-						if(chunkModified) {
-							chunk.resetRelightChecks();
+				if(WorldGeneration.instance.getLoadedPendingForWorld(w).size() != 0) {
+					Collection<ChunkPos> completion = Lists.newArrayList(WorldGeneration.instance.getLoadedPendingForWorld(w));
+					if(completion == null) return;
+					int count = 0;
+					for(ChunkPos pos : completion) {
+						Chunk chunk = w.getChunkFromChunkCoords(pos.chunkXPos, pos.chunkZPos);
+						if(chunk.isPopulated() && chunk.isLoaded()) {
+							boolean chunkModified = WorldGeneration.instance.runProcessChunk(w, pos);
+							if(chunkModified) {
+								chunk.resetRelightChecks();
+							}
+							WorldGeneration.instance.removePendingForWorld(w, chunk, true);
+							count++;
 						}
-						WorldGeneration.instance.removePendingForWorld(w, chunk, true);
-						count++;
-					}
-					if(count >= WorldManager.getMaxProcesses() && WorldManager.getMaxProcesses() != -1) {
-						WorldManager.info("Maximum amount of proccesses have been reached this tick %s", count);
-						break;
+						if(count >= WorldManager.getMaxProcesses() && WorldManager.getMaxProcesses() != -1) {
+							WorldManager.warning("Maximum amount of proccesses have been reached this tick %s", count);
+							break;
+						}
 					}
 				}
 			}
@@ -96,6 +98,29 @@ public class WorldEventManager {
 			WorldGeneration.instance.unqueueChunk(event.getWorld(), event.getChunk());
 		}
 	}
+
+	@SubscribeEvent
+	public void onPlayerLoad(PlayerEvent.LoadFromFile event) {
+		EntityPlayer player = event.getEntityPlayer();
+		NBTTagCompound compound = player.getEntityData();
+		
+		if(compound.hasKey(WorldManager.PLAYER_START_TAG)) {
+			EntityManager.instance.addPlayerStarted(player);
+		}
+		
+		if(!EntityManager.instance.hasPlayerStarted(player)) {
+			EntityManager.instance.givePlayerStartingInventory(player);
+			EntityManager.instance.addPlayerStarted(player);
+		}
+	}
 	
-	
+	@SubscribeEvent
+	public void onPlayerSave(PlayerEvent.SaveToFile event) {
+		EntityPlayer player = event.getEntityPlayer();
+		NBTTagCompound compound = player.getEntityData();
+		
+		if(EntityManager.instance.hasPlayerStarted(player)) {
+			compound.setBoolean(WorldManager.PLAYER_START_TAG, true);
+		}
+	}
 }

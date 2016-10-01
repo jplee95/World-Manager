@@ -2,8 +2,8 @@
 {
   "modid": "worldmanager",
   "name": "World Manager",
-  "description": "Managing you worlds so you don't have to.",
-  "version": "1.0.0",
+  "description": "Managing your worlds so you don't have to.",
+  "version": "1.0.1",
   "mcversion": "1.9.4-1.10.2",
   "url": "",
   "updateUrl": "",

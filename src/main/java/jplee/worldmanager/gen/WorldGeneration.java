@@ -14,7 +14,6 @@ import com.google.common.primitives.Doubles;
 
 import jplee.worldmanager.WorldManager;
 import jplee.worldmanager.util.Replaceable;
-
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
@@ -49,7 +48,7 @@ public class WorldGeneration {
 	public void loadReplacables() {
 		Map<Integer,Multimap<Block,Replaceable>> replaceables = Maps.newHashMap();
 		for(String rep : WorldManager.getReplaceables()) {
-			if(!rep.startsWith("#")) {
+			if(!rep.startsWith("#") && !rep.isEmpty()) {
 				Replaceable replaceable = Replaceable.build(rep);
 				Block block = replaceable.getBlockFromBlockStateProperty("block");
 				int dimension = ANY_DIMENSION;

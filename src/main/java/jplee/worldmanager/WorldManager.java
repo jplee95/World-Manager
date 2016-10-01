@@ -4,12 +4,9 @@ import org.apache.logging.log4j.Logger;
 
 import jplee.worldmanager.command.CommandWorldManager;
 import jplee.worldmanager.config.GenConfig;
+import jplee.worldmanager.entity.EntityManager;
 import jplee.worldmanager.gen.WorldGeneration;
 import jplee.worldmanager.gui.GuiChunkDebugEvent;
-
-import net.minecraft.block.BlockChest;
-import net.minecraft.entity.boss.EntityWither;
-import net.minecraft.entity.monster.EntitySkeleton;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
@@ -20,31 +17,39 @@ import net.minecraftforge.fml.common.event.FMLServerStoppedEvent;
 import net.minecraftforge.fml.relauncher.Side;
 
 @Mod(modid=WorldManager.MODID, name=WorldManager.NAME, version=WorldManager.VERSION, dependencies=WorldManager.FORGE_VERSION,
-	 acceptedMinecraftVersions=WorldManager.MINECRAFT_VERSION, useMetadata=false)
+	 acceptedMinecraftVersions=WorldManager.MINECRAFT_VERSION, useMetadata=false, acceptableRemoteVersions = "*")
 public class WorldManager {
 	public static final String NAME = "World Manager";
 	public static final String MODID = "worldmanager";
-	public static final String VERSION = "1.0.0";
+	public static final String VERSION = "1.0.1";
 	public static final String FORGE_VERSION = "required-after:Forge@[12.18.1.2039,)";
 	public static final String MINECRAFT_VERSION = "[1.9.4,1.10.2]";
 	
 	public static final String CHUNK_REPLACE_TAG = "wmReplace";
+	public static final String PLAYER_START_TAG = "wmStart";
+
+	@Mod.Instance
+	public static WorldManager instance;
 	
 	private static Logger logger;
 	private static GenConfig config;
 	
 	private static boolean showDebugInfo = false;
+	private static boolean showDebugLog = false;
 	
 	public static void showDebug(boolean show) {
 		showDebugInfo = show;
 	}
-	
 	public static boolean isDebugShowing() {
 		return showDebugInfo;
 	}
 	
-	@Mod.Instance
-	public static WorldManager instance;
+	public static void showDebugLog(boolean show) {
+		showDebugLog = show;
+	}
+	public static boolean isDebugLogShowing() {
+		return showDebugLog;
+	}
 	
 	public static String[] getReplaceables() {
 		return config.getReplaceables();
@@ -54,21 +59,33 @@ public class WorldManager {
 		return config.getMaxProcesses();
 	}
 	
+	public static String[] getStartInv() {
+		return config.getStartingInventory();
+	}
+	
 	public static void reloadConfig() {
 		config.reloadConfig();
 		WorldGeneration.instance.loadReplacables();
 	}
 	
 	public static void info(String message, Object...args) {
-		logger.info(String.format(message, args), new Object[0]);
+		logger.info(String.format(message, args));
 	}
 
 	public static void warning(String message, Object...args) {
-		logger.warn(String.format(message, args), new Object[0]);
+		logger.warn(String.format(message, args));
 	}
 
+	public static void debug(String message, Object...args) {
+		if(logger.isDebugEnabled())
+			logger.debug(String.format(message, args));
+		else if(showDebugLog) {
+			logger.info("[DEBUG]" + String.format(message, args));
+		}
+	}
+	
 	public static void error(String message, Object...args) {
-		logger.error(String.format(message, args), new Object[0]);
+		logger.error(String.format(message, args));
 	}
 	
 	@Mod.EventHandler
@@ -101,7 +118,7 @@ public class WorldManager {
 	
 	@Mod.EventHandler
 	public void serverStopped(FMLServerStoppedEvent event) {
-		info("Server Stoping", new Object[0]);
 		WorldGeneration.instance.clearQueuedChunks();
+		EntityManager.instance.clearEntityInfoCatch();
 	}
 }
