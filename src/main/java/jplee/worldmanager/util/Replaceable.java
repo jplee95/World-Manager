@@ -102,7 +102,12 @@ public class Replaceable {
 	protected void addBoolean(String key, boolean bool) {
 		addProperty(new Property<Boolean>(key, bool));
 	}
-	
+
+	protected void addOreDictionary(String oreDictionary) {
+		this.addBoolean("usingore", true);
+		this.addString("oredict", oreDictionary);
+	}
+
 	public static Replaceable build(IBlockState replaceable, boolean wildCard, Property...properties) {
 		Replaceable rep = new Replaceable();
 		rep.addBlockState("", replaceable, wildCard);
@@ -122,7 +127,11 @@ public class Replaceable {
 		String[] parts = string.split("\\|");
 		Matcher matcher = blockPattern.matcher(parts[0]);
 		if(matcher.matches()) {
-			replaceable.addBlockState("", parts[0], true);
+			if(parts[0].startsWith("ore:"))
+				replaceable.addOreDictionary(parts[0].substring(4));
+			else 
+				replaceable.addBlockState("", parts[0], true);
+			
 			once = !once;
 		}
 		if(parts.length > 1) {
@@ -141,12 +150,12 @@ public class Replaceable {
 						replaceable.addNumber("random", Math.min(Math.max(Double.parseDouble(match.group(2)),0),1));
 						continue;
 					} 
-					if(match.group(1).equals("oredict")) {
-						replaceable.addBoolean("oredict", Boolean.parseBoolean(match.group(2)));
+//					if(match.group(1).equals("oredict")) {
+//						replaceable.addBoolean("oredict", Boolean.parseBoolean(match.group(2)));
 //						((BlockStateWrapper) replaceable.getProperty("block")).useOreDictionary();
-						WorldManager.warning("Property %s in %s has not been implemented", match.group(1), string);
-						continue;
-					}
+//						WorldManager.warning("Property %s in %s has not been implemented", match.group(1), string);
+//						continue;
+//					}
 					if(match.group(1).equals("dimension")) {
 						replaceable.addNumber("dimension", Integer.parseInt(match.group(2)));
 						continue;
@@ -177,26 +186,29 @@ public class Replaceable {
 				first = false;
 			}
 		}
-		replaceable.testForMissing(replaceable);
+		replaceable.addMissing();
 		
 		return replaceable;
 	}
 	
-	public Replaceable testForMissing(Replaceable replaceable) {
-		if(!replaceable.hasProperty("random")) {
-			replaceable.addNumber("random", 1.0);
+	public Replaceable addMissing() {
+		if(!this.hasProperty("random")) {
+			this.addNumber("random", 1.0);
 		}
-		if(!replaceable.hasProperty("replace")) {
-			replaceable.addBlockState("replace", Blocks.AIR.getDefaultState(), false);
+		if(!this.hasProperty("replace")) {
+			this.addBlockState("replace", Blocks.AIR.getDefaultState(), false);
 		}
-		if(!replaceable.hasProperty("oredict")) {
-			replaceable.addBoolean("oredict", false);
+		if(!this.hasProperty("oredict")) {
+			this.addString("oredict", "");
 		}
-		if(!replaceable.hasProperty("min")) {
-			replaceable.addNumber("min", -1);
+		if(!this.hasProperty("usingore")) {
+			this.addBoolean("usingore", false);
 		}
-		if(!replaceable.hasProperty("max")) {
-			replaceable.addNumber("max", -1);
+		if(!this.hasProperty("min")) {
+			this.addNumber("min", -1);
+		}
+		if(!this.hasProperty("max")) {
+			this.addNumber("max", -1);
 		}
 		return this;
 	}
@@ -215,6 +227,7 @@ public class Replaceable {
 	@Override
 	public String toString() {
 		BlockStateWrapper wrapper = this.getPropertyAsBlockStateWrapper("block");
-		return super.toString() + "|" + wrapper.getBlock().toString();
+		boolean usingOre = this.getPropertyAsBoolean("usingore");
+		return this.getClass().getName() + "|" + (usingOre ? this.getPropertyAsString("oredict") : wrapper.getBlock().toString());
 	}
 }

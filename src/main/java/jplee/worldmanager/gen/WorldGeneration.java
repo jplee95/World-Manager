@@ -15,8 +15,11 @@ import com.google.common.primitives.Doubles;
 import jplee.worldmanager.WorldManager;
 import jplee.worldmanager.util.Replaceable;
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockDynamicLiquid;
+import net.minecraft.block.BlockStaticLiquid;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
@@ -25,6 +28,7 @@ import net.minecraft.world.chunk.IChunkGenerator;
 import net.minecraft.world.chunk.IChunkProvider;
 import net.minecraftforge.fml.common.IWorldGenerator;
 import net.minecraftforge.fml.common.registry.GameRegistry;
+import net.minecraftforge.oredict.OreDictionary;
 
 public class WorldGeneration {
 
@@ -37,33 +41,60 @@ public class WorldGeneration {
 
 	private Map<Integer,Multimap<Block,Replaceable>> modInstalledReplaceables;
 	private Map<Integer,Multimap<Block,Replaceable>> sortedReplaceables;
+	private Map<Integer,Multimap<String,Replaceable>> oreDictionaries;
 
 	private WorldGeneration() {
 		this.loadedPendingChunks = HashMultimap.create();
 		this.unloadedPendingChunks = HashMultimap.create();
 		this.modInstalledReplaceables = Maps.newHashMap();
+		this.oreDictionaries = Maps.newHashMap();
 		this.sortedReplaceables = Maps.newHashMap();
 	}
 
 	public void loadReplacables() {
 		Map<Integer,Multimap<Block,Replaceable>> replaceables = Maps.newHashMap();
+		Map<Integer,Multimap<String,Replaceable>> oreReps = Maps.newHashMap();
 		for(String rep : WorldManager.getReplaceables()) {
-			if(!rep.startsWith("#") && !rep.isEmpty()) {
+ 			if(!rep.startsWith("#") && !rep.isEmpty()) {
 				Replaceable replaceable = Replaceable.build(rep);
-				Block block = replaceable.getBlockFromBlockStateProperty("block");
 				int dimension = ANY_DIMENSION;
 				if(replaceable.hasProperty("dimension")) {
 					dimension = replaceable.getPropertyAsInt("dimension");
 				}
-				Multimap<Block, Replaceable> blocks = replaceables.get(dimension);
-				if(blocks == null) {
-					replaceables.put(dimension, HashMultimap.<Block,Replaceable>create());
-					blocks = replaceables.get(dimension);
+				if(replaceable.getPropertyAsBoolean("usingore")) {
+					String oreDict = replaceable.getPropertyAsString("oredict");
+					Multimap<String,Replaceable> reps = oreDictionaries.get(dimension);
+					if(reps == null) {
+						oreReps.put(dimension, HashMultimap.<String,Replaceable>create());
+						reps = oreReps.get(dimension);
+					}
+					reps.put(oreDict, replaceable);
+				} else {
+					Block block = replaceable.getBlockFromBlockStateProperty("block");
+					Multimap<Block, Replaceable> blocks = replaceables.get(dimension);
+					if(blocks == null) {
+						replaceables.put(dimension, HashMultimap.<Block,Replaceable>create());
+						blocks = replaceables.get(dimension);
+					}
+					blocks.put(block, replaceable);
 				}
-				blocks.put(block, replaceable);
 			}
 		}
 		replaceables.putAll(modInstalledReplaceables);
+		
+		oreDictionaries.clear();
+		for(int dimension : oreReps.keySet()) {
+			for(String ore : oreReps.get(dimension).keys()) {
+				List<Replaceable> list = Lists.newArrayList(oreReps.get(dimension).get(ore));
+				list.sort(replaceableComparable);
+				Multimap<String, Replaceable> oreDict = oreDictionaries.get(dimension);
+				if(oreDict == null) {
+					oreDictionaries.put(dimension, HashMultimap.<String,Replaceable>create());
+					oreDict = oreDictionaries.get(dimension); 
+				}
+				oreDict.putAll(ore, list);
+			}
+		}
 		
 		sortedReplaceables.clear();
 		for(int dimension : replaceables.keySet()) {
@@ -102,6 +133,21 @@ public class WorldGeneration {
 	
 	public Collection<Replaceable> getReplaceables(int world, Block block) {
 		List<Replaceable> rep = Lists.newArrayList();
+
+		ItemStack stack = new ItemStack(block);
+		if(stack.getItem() != null) {
+			for(int id : OreDictionary.getOreIDs(stack)) {
+				String i = OreDictionary.getOreName(id);
+				if(oreDictionaries.get(ANY_DIMENSION) != null) {
+					rep.addAll(oreDictionaries.get(ANY_DIMENSION).get(i));
+				}
+				Multimap<String, Replaceable> oreReps = oreDictionaries.get(world);
+				if(oreReps != null) {
+					rep.addAll(oreReps.get(i));
+				}
+			}
+		}
+		
 		if(sortedReplaceables.get(ANY_DIMENSION) != null) {
 			rep.addAll(sortedReplaceables.get(ANY_DIMENSION).get(block));
 		}
@@ -113,7 +159,7 @@ public class WorldGeneration {
 	}
 	
 	public boolean hasReplacables() {
-		return !sortedReplaceables.isEmpty();
+		return !sortedReplaceables.isEmpty() || !oreDictionaries.isEmpty();
 	}
 
 	public Collection<ChunkPos> getLoadedPendingForWorld(World world) {
@@ -217,7 +263,7 @@ public class WorldGeneration {
 						int posX = chunkPos.chunkXPos * 16 + x;
 						int posZ = chunkPos.chunkZPos * 16 + z;
 						BlockPos pos = new BlockPos(posX, y, posZ);
-						if(this.replacementProcess(world, fmlRandom, pos) && !chunkModified) { // posX == 15 && posZ == 15 && y == 0
+						if(this.replacementProcess(world, fmlRandom, pos) && !chunkModified) {
 							chunkModified = true;
 						}
 					}
@@ -240,14 +286,27 @@ public class WorldGeneration {
 						if((min <= pos.getY() || min == -1) && (max >= pos.getY() || max == -1)) {
 							double random = (Double) rep.getProperty("random");
 							IBlockState replace = rep.getPropertyAsBlockState("replace");
-							if(rep.isAdequateState("block", blockState) && (fmlRandom.nextDouble() < random || random == 1.0)) {
-								WorldManager.debug("Replacing %s at (%s %s %s)", blockState.getBlock().getLocalizedName(), pos.getX(), pos.getY(), pos.getZ());
-								if(replace != null) {
-									world.setBlockState(pos, replace, 2);
-								} else {
-									world.setBlockState(pos, Blocks.AIR.getDefaultState(), 2);
+							if((fmlRandom.nextDouble() < random || random == 1.0)) {
+								if(rep.getPropertyAsBoolean("usingore")) {
+									WorldManager.debug("Replacing %s at (%s %s %s)", blockState.getBlock().getLocalizedName(), pos.getX(), pos.getY(), pos.getZ());
+									if(replace != null) {
+										world.setBlockState(pos, replace, 2);
+									} else {
+										world.setBlockState(pos, Blocks.AIR.getDefaultState(), 2);
+									}
+									return true;
 								}
-								return true;
+								if(!rep.getPropertyAsBoolean("usingore")) {
+									if(rep.isAdequateState("block", blockState)) {
+										WorldManager.debug("Replacing %s at (%s %s %s)", blockState.getBlock().getLocalizedName(), pos.getX(), pos.getY(), pos.getZ());
+										if(replace != null) {
+											world.setBlockState(pos, replace, 2);
+										} else {
+											world.setBlockState(pos, Blocks.AIR.getDefaultState(), 2);
+										}
+										return true;
+									}
+								}
 							}
 						}
 					}

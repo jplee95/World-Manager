@@ -13,11 +13,14 @@ import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.event.terraingen.OreGenEvent;
 import net.minecraftforge.event.world.ChunkDataEvent;
 import net.minecraftforge.event.world.ChunkEvent;
+import net.minecraftforge.fml.common.eventhandler.Event;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.oredict.OreDictionary.OreRegisterEvent;
 
 public class WorldEventManager {
 
@@ -138,5 +141,15 @@ public class WorldEventManager {
 				compound.setBoolean(WorldManager.PLAYER_START_TAG, true);
 			}
 		}
+	}
+
+	@SubscribeEvent
+	public void onOreRegister(OreRegisterEvent event) {
+		WorldManager.info("%s", event.getOre());
+	}
+
+	@SubscribeEvent
+	public void onOreGenerate(OreGenEvent.GenerateMinable event) {
+		WorldManager.info("%s", event.getType());
 	}
 }

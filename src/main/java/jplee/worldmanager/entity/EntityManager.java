@@ -37,7 +37,10 @@ public class EntityManager {
 				} catch (NBTException e) {
 					WorldManager.error("NBT tags were incorrect writen for item %s", item);
 				}
-				if(count >= 18) break;
+				if(count >= 18) {
+					WorldManager.warning("There was more that 18 items listed for starting inventory", new Object[0]);
+					break;
+				}
 			}
 		}
 	}

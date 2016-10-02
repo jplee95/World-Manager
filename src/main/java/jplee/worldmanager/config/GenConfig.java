@@ -26,7 +26,7 @@ public class GenConfig {
 		"# minecraft:dirt 2"
 	};
 	private final String[] defaultOreGen = {
-			
+		
 	};
 	
 	public GenConfig(File file) {
@@ -58,6 +58,8 @@ public class GenConfig {
 					  + "The setup is separated with '|' and must start with:\n"
 					  + "  unlocalized_block_id[state] - The block to be replaced\n"
 					  + "  Any part of the state for this can be set to '*' to wild card it\n"
+					  + "Or you can use ore dictionary as below:\n"
+					  + "  ore:oreName\n"
 					  + "\n"
 					  + "Extra modifiers for changing how it replaces\n"
 					  + "  replace=unlocalized_block_id[state] - the replacement block. Can not wild card, Default: minecraft:air\n"
@@ -74,9 +76,9 @@ public class GenConfig {
 		prop = config.get("general", "startInv", defaultStarting);
 		prop.setComment("This list is for adding to the starting inventory\n"
 					  + "Each new line is a new item to add the starting inventory\n"
-					  + "There is a max of 18 items for inventory overflow reasons"
+					  + "There is a max of 18 items to prevent inventory overflow\n"
 					  + "you can comment out lines with '#' if needed\n"
-					  + "Every line needs to be setup as below, nbt, count and meta are optional:\n"
+					  + "Every line needs to be setup as below. nbt, count and meta are optional:\n"
 					  + "  unlocalized_block_id:meta count {nbt}");
 		starting = prop.getStringList();
 		

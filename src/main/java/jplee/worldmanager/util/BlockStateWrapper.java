@@ -27,7 +27,6 @@ public class BlockStateWrapper {
 	private Map<IBlockState,Boolean> allowedStates;
 	private Map<String,Boolean> oreDictionaried;
 	private boolean wildCard;
-	private boolean oreDict;
 	
 	public BlockStateWrapper(@Nonnull String block, @Nullable String states, boolean wildCard) {
 		this.wildCard = wildCard;
@@ -96,16 +95,6 @@ public class BlockStateWrapper {
 	}
 	
 	public boolean isAdequateState(IBlockState state) {
-		if(oreDict) {
-			ItemStack stack = new ItemStack(state.getBlock(), 1);
-			Boolean found = false;
-			for(int id : OreDictionary.getOreIDs(stack)) {
-				found = oreDictionaried.get(OreDictionary.getOreName(id));
-			}
-			if(found != null) {
-				return found;
-			}
-		}
 		if(!this.wildCard) {
 			if(state == null && this.blockState == null) return true;
 			if(state != this.blockState) return false;
@@ -116,15 +105,6 @@ public class BlockStateWrapper {
 			return test == null ? false : test;
 		}
 		return false;
-	}
-	
-	public void useOreDictionary() {
-		this.oreDict = true;
-		oreDictionaried = Maps.newHashMap();
-		ItemStack stack = new ItemStack(block, 1);
-		for(int id : OreDictionary.getOreIDs(stack)) {
-			oreDictionaried.put(OreDictionary.getOreName(id), true);
-		}
 	}
 	
 	public boolean canReturnState() {
