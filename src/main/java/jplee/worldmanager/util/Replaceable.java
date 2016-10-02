@@ -170,7 +170,7 @@ public class Replaceable {
 					}
 					if(match.group(1).equals("loot")) {
 						replaceable.addString("loot", match.group(2));
-						WorldManager.warning("Property %s in %s has not been implemented", match.group(1), string);
+//						WorldManager.warning("Property %s in %s has not been implemented", match.group(1), string);
 						continue;
 					}
 					if(match.group(1).equals("match")) {
@@ -200,6 +200,9 @@ public class Replaceable {
 		}
 		if(!this.hasProperty("oredict")) {
 			this.addString("oredict", "");
+		}
+		if(!this.hasProperty("loot")) {
+			this.addString("loot", "");
 		}
 		if(!this.hasProperty("usingore")) {
 			this.addBoolean("usingore", false);

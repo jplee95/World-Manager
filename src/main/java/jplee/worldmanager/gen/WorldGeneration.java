@@ -20,12 +20,15 @@ import net.minecraft.block.BlockStaticLiquid;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.IChunkGenerator;
 import net.minecraft.world.chunk.IChunkProvider;
+import net.minecraft.world.storage.loot.ILootContainer;
 import net.minecraftforge.fml.common.IWorldGenerator;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.oredict.OreDictionary;
@@ -134,6 +137,14 @@ public class WorldGeneration {
 	public Collection<Replaceable> getReplaceables(int world, Block block) {
 		List<Replaceable> rep = Lists.newArrayList();
 
+		if(sortedReplaceables.get(ANY_DIMENSION) != null) {
+			rep.addAll(sortedReplaceables.get(ANY_DIMENSION).get(block));
+		}
+		Multimap<Block, Replaceable> worldReplace = sortedReplaceables.get(world);
+		if(worldReplace != null) {
+			rep.addAll(worldReplace.get(block));
+		}
+
 		ItemStack stack = new ItemStack(block);
 		if(stack.getItem() != null) {
 			for(int id : OreDictionary.getOreIDs(stack)) {
@@ -148,13 +159,6 @@ public class WorldGeneration {
 			}
 		}
 		
-		if(sortedReplaceables.get(ANY_DIMENSION) != null) {
-			rep.addAll(sortedReplaceables.get(ANY_DIMENSION).get(block));
-		}
-		Multimap<Block, Replaceable> worldReplace = sortedReplaceables.get(world);
-		if(worldReplace != null) {
-			rep.addAll(worldReplace.get(block));
-		}
 		return rep;
 	}
 	
@@ -288,22 +292,12 @@ public class WorldGeneration {
 							IBlockState replace = rep.getPropertyAsBlockState("replace");
 							if((fmlRandom.nextDouble() < random || random == 1.0)) {
 								if(rep.getPropertyAsBoolean("usingore")) {
-									WorldManager.debug("Replacing %s at (%s %s %s)", blockState.getBlock().getLocalizedName(), pos.getX(), pos.getY(), pos.getZ());
-									if(replace != null) {
-										world.setBlockState(pos, replace, 2);
-									} else {
-										world.setBlockState(pos, Blocks.AIR.getDefaultState(), 2);
-									}
+									setBlock(world, pos, blockState, replace, rep.getPropertyAsString("loot"));
 									return true;
 								}
 								if(!rep.getPropertyAsBoolean("usingore")) {
 									if(rep.isAdequateState("block", blockState)) {
-										WorldManager.debug("Replacing %s at (%s %s %s)", blockState.getBlock().getLocalizedName(), pos.getX(), pos.getY(), pos.getZ());
-										if(replace != null) {
-											world.setBlockState(pos, replace, 2);
-										} else {
-											world.setBlockState(pos, Blocks.AIR.getDefaultState(), 2);
-										}
+										setBlock(world, pos, blockState, replace, rep.getPropertyAsString("loot"));
 										return true;
 									}
 								}
@@ -314,5 +308,29 @@ public class WorldGeneration {
 			}
 		}
 		return false;
+	}
+	
+	private void setBlock(World world, BlockPos pos, IBlockState old, IBlockState state, String loot) {
+		WorldManager.debug("Replacing %s at (%s %s %s)", old.getBlock().getLocalizedName(), pos.getX(), pos.getY(), pos.getZ());
+		if(state != null) {
+			world.setBlockState(pos, state, 2);
+			if(state.getBlock().hasTileEntity(state)) {
+				TileEntity tile = world.getTileEntity(pos);
+				if(tile != null && tile instanceof ILootContainer) {
+					NBTTagCompound compound = new NBTTagCompound();
+					if(loot != null) {
+						tile.writeToNBT(compound);
+						if(!compound.hasKey("LootTable")) {
+							compound.setString("LootTable", loot);
+							WorldManager.info("%s", tile.getTileData());
+						}
+						tile.readFromNBT(compound);
+						tile.markDirty();
+					}
+				}
+			}
+		} else {
+			world.setBlockState(pos, Blocks.AIR.getDefaultState(), 2);
+		}
 	}
 }
