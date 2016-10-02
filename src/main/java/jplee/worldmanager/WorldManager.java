@@ -63,9 +63,20 @@ public class WorldManager {
 		return config.getStartingInventory();
 	}
 	
+	public static boolean isReplaceablesEnabled() {
+		return config.isReplaceablesEnabled();
+	}
+	
+	public static boolean isStartInvEnabled() {
+		return config.isStartInvEnabled();
+	}
+	
 	public static void reloadConfig() {
-		config.reloadConfig();
-		WorldGeneration.instance.loadReplacables();
+		config.loadConfig();
+		if(config.isReplaceablesEnabled())
+			WorldGeneration.instance.loadReplacables();
+		if(config.isStartInvEnabled())
+			EntityManager.instance.loadStartingItems();
 	}
 	
 	public static void info(String message, Object...args) {
@@ -92,9 +103,13 @@ public class WorldManager {
 	public void preInit(FMLPreInitializationEvent event) {
 		logger = event.getModLog();
 		config = new GenConfig(event.getSuggestedConfigurationFile());
-		
-		WorldGeneration.instance.loadReplacables();
+
+		if(config.isReplaceablesEnabled())
+			WorldGeneration.instance.loadReplacables();
 		WorldGeneration.instance.registerWorldGenerators();
+
+		if(config.isStartInvEnabled())
+			EntityManager.instance.loadStartingItems();
 		
 		MinecraftForge.EVENT_BUS.register(this);
 		MinecraftForge.EVENT_BUS.register(new WorldEventManager());

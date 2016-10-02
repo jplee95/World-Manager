@@ -17,6 +17,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
+import net.minecraftforge.oredict.OreDictionary;
 
 public class CommandWorldManager extends CommandBase {
 
@@ -76,6 +77,16 @@ public class CommandWorldManager extends CommandBase {
 				} else {
 					notifyCommandListener(sender, this, "commands.wm.getstates.notblock", new Object[0]);
 				}
+			} else if(args[0].equals("getoredict") && args.length == 1) {
+				EntityPlayer entityplayer = getPlayer(server, sender, sender.getName());
+				ItemStack stack = entityplayer.getHeldItemMainhand();
+				if(stack != null) {
+					for(int id : OreDictionary.getOreIDs(stack)) {
+						notifyCommandListener(sender, this, OreDictionary.getOreName(id), new Object[0]);
+					}
+				} else {
+					notifyCommandListener(sender, this, "commands.wm.getoredict.noitem", new Object[0]);
+				}
 			} else {
 				notifyCommandListener(sender, this, "commands.wm.usage", new Object[0]);
 			}
@@ -87,6 +98,6 @@ public class CommandWorldManager extends CommandBase {
 	
 	@Override
 	public List<String> getTabCompletionOptions(MinecraftServer server, ICommandSender sender, String[] args, BlockPos pos) {
-		return args.length == 1 ? getListOfStringsMatchingLastWord(args, "processchunk", "reloadconfig", "getstates", "toggledebug") : Collections.<String>emptyList();
+		return args.length == 1 ? getListOfStringsMatchingLastWord(args, "processchunk", "reloadconfig", "getstates", "toggledebug", "getoredict") : Collections.<String>emptyList();
 	}
 }

@@ -11,9 +11,11 @@ public class GenConfig {
 	
 	private boolean enableReplaceables;
 	private boolean enableOreGen;
+	private boolean enableStartInv;
 	
 	private String[] replaceables;
 	private String[] starting;
+	private String[] oreGen;
 	private int maxProcesses;
 	
 	private final String[] defaultReplaceables = {
@@ -21,15 +23,18 @@ public class GenConfig {
 		"# minecraft:furnace[facing=north]|replace=minecraft:cobblestone"
 	};
 	private final String[] defaultStarting = {
-		
+		"# minecraft:dirt 2"
+	};
+	private final String[] defaultOreGen = {
+			
 	};
 	
 	public GenConfig(File file) {
 		config = new Configuration(file);
-		this.genConfig();
+		this.loadConfig();
 	}
 	
-	public void genConfig() {
+	public void loadConfig() {
 		config.load();
 		Property prop;
 		
@@ -43,7 +48,7 @@ public class GenConfig {
 
 		prop = config.get("enable", "startInv", false);
 		prop.setComment("Enable starting inventory, Default: false");
-		enableOreGen = prop.getBoolean();
+		enableStartInv = prop.getBoolean();
 
 		prop = config.get("general", "replace", defaultReplaceables);
 		prop.setComment("This list is used for replacing generated blocks\n"
@@ -55,12 +60,12 @@ public class GenConfig {
 					  + "  Any part of the state for this can be set to '*' to wild card it\n"
 					  + "\n"
 					  + "Extra modifiers for changing how it replaces\n"
-					  + "  replace=unlocalized_block_id[state] - the block to replace the other block. Not having this will just replace it with air\n"
-					  + "  random=double - The chance for it to succeed. Value between 0.0 and 1.0, defaults to 1.0 if not given\n"
-					  + "  dimension=int - The dimension that this will happen in, defaults to any dimension\n"
-					  + "  min=int - the minimum height that it will replace at, inclusive\n"
-					  + "  max=int - the maximum height that it will replace at, inclusive\n"
-//					  + "  oredict=boolean - should use ore dictionary for this replace (NOT IMPLEMENTED YET)\n"
+					  + "  replace=unlocalized_block_id[state] - the replacement block. Can not wild card, Default: minecraft:air\n"
+					  + "  random=double - The chance for it to succeed. Range: 0.0 to 1.0, Default: 1.0\n"
+					  + "  dimension=int - The dimension that this will happen in. Range: any integer, Default: any dimension\n"
+					  + "  min=int - the minimum height that it will replace at. Inclusive, Range: 0 to 255, Default: 0\n"
+					  + "  max=int - the maximum height that it will replace at. Inclusive, Range: 0 to 255, Default: 255\n"
+//					  + "  oredict=boolean - replace will use ore dictionary. Range: true to false, Default: false (NOT IMPLEMENTED YET)\n"
 //					  + "  loot=string - the loot table that will be set to lootable inventories (NOT IMPLEMENTED YET)\n"
 //					  + "  match=string - matches states given, separate states with a camma, only works on equivalent states (NOT IMPLEMENTED YET)\n"
 					  + "More will come in the future");
@@ -69,11 +74,19 @@ public class GenConfig {
 		prop = config.get("general", "startInv", defaultStarting);
 		prop.setComment("This list is for adding to the starting inventory\n"
 					  + "Each new line is a new item to add the starting inventory\n"
+					  + "There is a max of 18 items for inventory overflow reasons"
 					  + "you can comment out lines with '#' if needed\n"
-					  + "Every line needs to be setup as below, nbt and meta are optional:\n"
+					  + "Every line needs to be setup as below, nbt, count and meta are optional:\n"
 					  + "  unlocalized_block_id:meta count {nbt}");
 		starting = prop.getStringList();
 		
+		prop = config.get("general", "oreGen", defaultOreGen);
+		prop.setComment("This list is for overriding world ore generation\n"
+					  + "Each new line is a new override\n"
+					  + "you can comment out lines with '#' if needed\n"
+					  + "Every line needs to be setup as below,\n"
+					  + "  unlocalized_block_id[state]");
+		oreGen = prop.getStringList();
 		
 //		prop = config.get("general", "maxProcesses", -1);
 //		prop.setComment("The maximum amount of chunks that can be processed in one tick, set to -1 for no limit\n"
@@ -85,14 +98,6 @@ public class GenConfig {
 //		maxProcesses = prop.getInt();
 		
 		config.save();
-	}
-	
-	public void reloadConfig() {
-		config.load();
-		Property prop;
-
-		prop = config.get("general", "replace", new String[]{ });
-		this.replaceables = prop.getStringList();
 	}
 	
 	public final String[] getReplaceables() {
@@ -109,6 +114,10 @@ public class GenConfig {
 
 	public boolean isOreGenEnabled() {
 		return enableOreGen;
+	}
+
+	public boolean isStartInvEnabled() {
+		return enableStartInv;
 	}
 
 	public String[] getStartingInventory() {

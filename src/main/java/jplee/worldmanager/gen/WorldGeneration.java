@@ -82,7 +82,7 @@ public class WorldGeneration {
 
 	private static Comparator<Replaceable> replaceableComparable = new Comparator<Replaceable>() {
 		@Override public int compare(Replaceable r1, Replaceable r2) {
-			return -Doubles.compare(((Double)r1.getProperty("random")), ((Double)r2.getProperty("random")));
+			return -Doubles.compare(r1.getPropertyAsDouble("random"), r2.getPropertyAsDouble("random"));
 		}
 	};
 	
@@ -217,7 +217,7 @@ public class WorldGeneration {
 						int posX = chunkPos.chunkXPos * 16 + x;
 						int posZ = chunkPos.chunkZPos * 16 + z;
 						BlockPos pos = new BlockPos(posX, y, posZ);
-						if(this.replacementProcess(world, fmlRandom, pos)) {
+						if(this.replacementProcess(world, fmlRandom, pos) && !chunkModified) { // posX == 15 && posZ == 15 && y == 0
 							chunkModified = true;
 						}
 					}
@@ -241,7 +241,7 @@ public class WorldGeneration {
 							double random = (Double) rep.getProperty("random");
 							IBlockState replace = rep.getPropertyAsBlockState("replace");
 							if(rep.isAdequateState("block", blockState) && (fmlRandom.nextDouble() < random || random == 1.0)) {
-	//							WorldManager.info("Replacing %s at (%s %s %s)", blockState.getBlock().getLocalizedName(), pos.getX(), pos.getY(), pos.getZ());
+								WorldManager.debug("Replacing %s at (%s %s %s)", blockState.getBlock().getLocalizedName(), pos.getX(), pos.getY(), pos.getZ());
 								if(replace != null) {
 									world.setBlockState(pos, replace, 2);
 								} else {

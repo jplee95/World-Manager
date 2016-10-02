@@ -10,6 +10,8 @@ import jplee.worldmanager.WorldManager;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
+import net.minecraft.item.ItemStack;
+import net.minecraftforge.oredict.OreDictionary;
 
 public class Replaceable {
 
@@ -109,7 +111,6 @@ public class Replaceable {
 				rep.addProperty(prop);
 			}
 		}
-		checkAndInsertMissing(rep);
 		return rep;
 	}
 	
@@ -142,6 +143,7 @@ public class Replaceable {
 					} 
 					if(match.group(1).equals("oredict")) {
 						replaceable.addBoolean("oredict", Boolean.parseBoolean(match.group(2)));
+//						((BlockStateWrapper) replaceable.getProperty("block")).useOreDictionary();
 						WorldManager.warning("Property %s in %s has not been implemented", match.group(1), string);
 						continue;
 					}
@@ -175,14 +177,12 @@ public class Replaceable {
 				first = false;
 			}
 		}
-		checkAndInsertMissing(replaceable);
+		replaceable.testForMissing(replaceable);
 		
 		return replaceable;
 	}
 	
-	
-	
-	private static void checkAndInsertMissing(Replaceable replaceable) {
+	public Replaceable testForMissing(Replaceable replaceable) {
 		if(!replaceable.hasProperty("random")) {
 			replaceable.addNumber("random", 1.0);
 		}
@@ -198,6 +198,7 @@ public class Replaceable {
 		if(!replaceable.hasProperty("max")) {
 			replaceable.addNumber("max", -1);
 		}
+		return this;
 	}
 	
 	public static class Property<T extends Object> {

@@ -22,31 +22,28 @@ public class EntityManager {
 	
 	private EntityManager() {
 		 startedPlayers = Maps.newHashMap();
-		 
-		 loadStartingItems();
 	}
 	
 	public void loadStartingItems() {
 		 String[] startInv = WorldManager.getStartInv();
 		startingItems = Lists.newArrayListWithCapacity(startInv.length);
 		
+		int count = 0;
 		for(String item : startInv) {
-			if(!item.startsWith("#") && !item.isEmpty()) {
+			if(!item.startsWith("#") && !item.trim().isEmpty()) {
 				try {
 					startingItems.add(parsItem(item));
+					count++;
 				} catch (NBTException e) {
-					e.printStackTrace();
+					WorldManager.error("NBT tags were incorrect writen for item %s", item);
 				}
+				if(count >= 18) break;
 			}
 		}
 	}
 	
 	private ItemStack parsItem(String item) throws NBTException {
 		String[] parts = item.trim().split(" ", 2);
-		
-		for(int i = 0; i < parts.length; i++) {
-			WorldManager.info("Item: " + i + " " + parts[i]);
-		}
 		
 		int amount = 1;
 		if(parts.length >= 2) {

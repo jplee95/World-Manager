@@ -22,7 +22,7 @@ import net.minecraftforge.fml.relauncher.Side;
 public class WorldEventManager {
 
 	@SubscribeEvent
-	public void onWorldTick(TickEvent.WorldTickEvent event) { // TODO: Move stuff inside this to a better spot
+	public void onWorldTick(TickEvent.WorldTickEvent event) { // TODO: Possibly move stuff inside this to a better spot
 		if(event.side != Side.SERVER) {
 			return;
 		}
@@ -31,7 +31,7 @@ public class WorldEventManager {
 		if(!(w instanceof WorldServer)) {
 			return;
 		} else {
-			if(event.phase == TickEvent.Phase.END) {
+			if(event.phase == TickEvent.Phase.END && WorldManager.isReplaceablesEnabled()) {
 				if(WorldGeneration.instance.getLoadedPendingForWorld(w).size() != 0) {
 					Collection<ChunkPos> completion = Lists.newArrayList(WorldGeneration.instance.getLoadedPendingForWorld(w));
 					if(completion == null) return;
@@ -46,10 +46,10 @@ public class WorldEventManager {
 							WorldGeneration.instance.removePendingForWorld(w, chunk, true);
 							count++;
 						}
-						if(count >= WorldManager.getMaxProcesses() && WorldManager.getMaxProcesses() != -1) {
-							WorldManager.warning("Maximum amount of proccesses have been reached this tick %s", count);
-							break;
-						}
+//						if(count >= WorldManager.getMaxProcesses() && WorldManager.getMaxProcesses() != -1) {
+//							WorldManager.warning("Maximum amount of proccesses have been reached this tick %s", count);
+//							break;
+//						}
 					}
 				}
 			}
@@ -58,29 +58,33 @@ public class WorldEventManager {
 
 	@SubscribeEvent
 	public void onChunkDataLoad(ChunkDataEvent.Load event) {
-		World world = event.getWorld();
-		NBTTagCompound compound = (NBTTagCompound) event.getData().getTag(WorldManager.MODID);
-		
-		if(compound != null) {
-			if(compound.hasKey(WorldManager.CHUNK_REPLACE_TAG)) {
-				WorldGeneration.instance.addPendingForWorld(world, event.getChunk(), true);
+		if(WorldManager.isReplaceablesEnabled()) {
+			World world = event.getWorld();
+			NBTTagCompound compound = (NBTTagCompound) event.getData().getTag(WorldManager.MODID);
+			
+			if(compound != null) {
+				if(compound.hasKey(WorldManager.CHUNK_REPLACE_TAG)) {
+					WorldGeneration.instance.addPendingForWorld(world, event.getChunk(), true);
+				}
 			}
 		}
 	}
 	
 	@SubscribeEvent
 	public void onChunkDataSave(ChunkDataEvent.Save event) {
-		World world = event.getWorld();
-		
-		if(WorldGeneration.instance.isQueuedChunk(world, event.getChunk())) {
-			NBTTagCompound compound = (NBTTagCompound) event.getData().getTag(WorldManager.MODID);
-			if(compound == null) {
-				event.getData().setTag(WorldManager.MODID, new NBTTagCompound());
-				compound = (NBTTagCompound) event.getData().getTag(WorldManager.MODID);
-			}
-			if(!compound.hasKey(WorldManager.CHUNK_REPLACE_TAG)) {
-				compound.setBoolean(WorldManager.CHUNK_REPLACE_TAG, true);
-				WorldGeneration.instance.removePendingForWorld(world, event.getChunk(), false);
+		if(WorldManager.isReplaceablesEnabled()) {
+			World world = event.getWorld();
+			
+			if(WorldGeneration.instance.isQueuedChunk(world, event.getChunk())) {
+				NBTTagCompound compound = (NBTTagCompound) event.getData().getTag(WorldManager.MODID);
+				if(compound == null) {
+					event.getData().setTag(WorldManager.MODID, new NBTTagCompound());
+					compound = (NBTTagCompound) event.getData().getTag(WorldManager.MODID);
+				}
+				if(!compound.hasKey(WorldManager.CHUNK_REPLACE_TAG)) {
+					compound.setBoolean(WorldManager.CHUNK_REPLACE_TAG, true);
+					WorldGeneration.instance.removePendingForWorld(world, event.getChunk(), false);
+				}
 			}
 		}
 	}
@@ -101,26 +105,38 @@ public class WorldEventManager {
 
 	@SubscribeEvent
 	public void onPlayerLoad(PlayerEvent.LoadFromFile event) {
-		EntityPlayer player = event.getEntityPlayer();
-		NBTTagCompound compound = player.getEntityData();
-		
-		if(compound.hasKey(WorldManager.PLAYER_START_TAG)) {
-			EntityManager.instance.addPlayerStarted(player);
-		}
-		
-		if(!EntityManager.instance.hasPlayerStarted(player)) {
-			EntityManager.instance.givePlayerStartingInventory(player);
-			EntityManager.instance.addPlayerStarted(player);
+		if(WorldManager.isStartInvEnabled()) {
+			EntityPlayer player = event.getEntityPlayer();
+			NBTTagCompound compound = (NBTTagCompound) player.getEntityData().getTag(WorldManager.MODID);
+			
+			if(compound != null) {
+				if(compound.hasKey(WorldManager.PLAYER_START_TAG)) {
+					EntityManager.instance.addPlayerStarted(player);
+				}
+			}
+			
+			if(!EntityManager.instance.hasPlayerStarted(player)) {
+				EntityManager.instance.givePlayerStartingInventory(player);
+				EntityManager.instance.addPlayerStarted(player);
+			}
 		}
 	}
 	
 	@SubscribeEvent
 	public void onPlayerSave(PlayerEvent.SaveToFile event) {
-		EntityPlayer player = event.getEntityPlayer();
-		NBTTagCompound compound = player.getEntityData();
-		
-		if(EntityManager.instance.hasPlayerStarted(player)) {
-			compound.setBoolean(WorldManager.PLAYER_START_TAG, true);
+		if(WorldManager.isStartInvEnabled()) {
+			EntityPlayer player = event.getEntityPlayer();
+			NBTTagCompound base = player.getEntityData();
+
+			NBTTagCompound compound = (NBTTagCompound) base.getTag(WorldManager.MODID);
+			if(compound == null) {
+				base.setTag(WorldManager.MODID, new NBTTagCompound());
+				compound = (NBTTagCompound) base.getTag(WorldManager.MODID);
+			}
+			
+			if(EntityManager.instance.hasPlayerStarted(player)) {
+				compound.setBoolean(WorldManager.PLAYER_START_TAG, true);
+			}
 		}
 	}
 }

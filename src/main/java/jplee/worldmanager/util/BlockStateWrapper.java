@@ -1,5 +1,6 @@
 package jplee.worldmanager.util;
 
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -7,12 +8,16 @@ import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import jplee.worldmanager.WorldManager;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.item.ItemBlock;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.oredict.OreDictionary;
 
 public class BlockStateWrapper {
 	private static final Pattern statePattern = Pattern.compile("(\\w+)\\=([\\w*]+)");
@@ -20,7 +25,9 @@ public class BlockStateWrapper {
 	private Block block;
 	private IBlockState blockState;
 	private Map<IBlockState,Boolean> allowedStates;
+	private Map<String,Boolean> oreDictionaried;
 	private boolean wildCard;
+	private boolean oreDict;
 	
 	public BlockStateWrapper(@Nonnull String block, @Nullable String states, boolean wildCard) {
 		this.wildCard = wildCard;
@@ -88,7 +95,17 @@ public class BlockStateWrapper {
 		}
 	}
 	
-		public boolean isAdequateState(IBlockState state) {
+	public boolean isAdequateState(IBlockState state) {
+		if(oreDict) {
+			ItemStack stack = new ItemStack(state.getBlock(), 1);
+			Boolean found = false;
+			for(int id : OreDictionary.getOreIDs(stack)) {
+				found = oreDictionaried.get(OreDictionary.getOreName(id));
+			}
+			if(found != null) {
+				return found;
+			}
+		}
 		if(!this.wildCard) {
 			if(state == null && this.blockState == null) return true;
 			if(state != this.blockState) return false;
@@ -99,6 +116,15 @@ public class BlockStateWrapper {
 			return test == null ? false : test;
 		}
 		return false;
+	}
+	
+	public void useOreDictionary() {
+		this.oreDict = true;
+		oreDictionaried = Maps.newHashMap();
+		ItemStack stack = new ItemStack(block, 1);
+		for(int id : OreDictionary.getOreIDs(stack)) {
+			oreDictionaried.put(OreDictionary.getOreName(id), true);
+		}
 	}
 	
 	public boolean canReturnState() {
