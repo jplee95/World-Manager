@@ -322,7 +322,6 @@ public class WorldGeneration {
 						tile.writeToNBT(compound);
 						if(!compound.hasKey("LootTable")) {
 							compound.setString("LootTable", loot);
-							WorldManager.info("%s", tile.getTileData());
 						}
 						tile.readFromNBT(compound);
 						tile.markDirty();
