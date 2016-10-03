@@ -9,9 +9,9 @@ public class GenConfig {
 	
 	private Configuration config;
 	
-	private boolean enableReplaceables;
-	private boolean enableOreGen;
-	private boolean enableStartInv;
+	private boolean enableReplaceables = false;
+	private boolean enableOreGen = false;
+	private boolean enableStartInv = false;
 	
 	private String[] replaceables;
 	private String[] starting;
@@ -42,9 +42,9 @@ public class GenConfig {
 		prop.setComment("Enable block replacement, Default: false");
 		enableReplaceables = prop.getBoolean();
 
-		prop = config.get("enable", "oreGen", false);
-		prop.setComment("Enable ore generation overrides, Default: false");
-		enableOreGen = prop.getBoolean();
+//		prop = config.get("enable", "oreGen", false);
+//		prop.setComment("Enable ore generation overrides, Default: false");
+//		enableOreGen = prop.getBoolean();
 
 		prop = config.get("enable", "startInv", false);
 		prop.setComment("Enable starting inventory, Default: false");
@@ -82,13 +82,13 @@ public class GenConfig {
 					  + "  unlocalized_block_id:meta count {nbt}");
 		starting = prop.getStringList();
 		
-		prop = config.get("general", "oreGen", defaultOreGen);
-		prop.setComment("This list is for overriding world ore generation\n"
-					  + "Each new line is a new override\n"
-					  + "you can comment out lines with '#' if needed\n"
-					  + "Every line needs to be setup as below,\n"
-					  + "  unlocalized_block_id[state]");
-		oreGen = prop.getStringList();
+//		prop = config.get("general", "oreGen", defaultOreGen);
+//		prop.setComment("This list is for overriding world ore generation\n"
+//					  + "Each new line is a new override\n"
+//					  + "you can comment out lines with '#' if needed\n"
+//					  + "Every line needs to be setup as below,\n"
+//					  + "  unlocalized_block_id[state]");
+//		oreGen = prop.getStringList();
 		
 //		prop = config.get("general", "maxProcesses", -1);
 //		prop.setComment("The maximum amount of chunks that can be processed in one tick, set to -1 for no limit\n"

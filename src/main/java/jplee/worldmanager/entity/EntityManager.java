@@ -46,10 +46,11 @@ public class EntityManager {
 	}
 	
 	private ItemStack parsItem(String item) throws NBTException {
-		String[] parts = item.trim().split(" ", 2);
+		String[] parts = item.trim().split(" ", 3);
 		
 		int amount = 1;
 		if(parts.length >= 2) {
+			WorldManager.info(parts[1], new Object[0]);
 			amount = Integer.parseInt(parts[1]);
 		}
 		
