@@ -68,7 +68,7 @@ public class GenConfig {
 					  + "  min=int - the minimum height that it will replace at. Inclusive, Range: 0 to 255, Default: 0\n"
 					  + "  max=int - the maximum height that it will replace at. Inclusive, Range: 0 to 255, Default: 255\n"
 //					  + "  oredict=boolean - replace will use ore dictionary. Range: true to false, Default: false (NOT IMPLEMENTED YET)\n"
-					  + "  loot=string - the loot table that will be set to lootable inventories (NOT IMPLEMENTED YET)\n"
+					  + "  loot=string - the loot table that will be set to lootable inventories\n"
 //					  + "  match=string - matches states given, separate states with a camma, only works on equivalent states (NOT IMPLEMENTED YET)\n"
 					  + "More will come in the future");
 		replaceables = prop.getStringList();

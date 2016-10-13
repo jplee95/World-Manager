@@ -7,6 +7,7 @@ import jplee.worldmanager.config.GenConfig;
 import jplee.worldmanager.entity.EntityManager;
 import jplee.worldmanager.gen.WorldGeneration;
 import jplee.worldmanager.gui.GuiChunkDebugEvent;
+import jplee.worldmanager.gui.GuiEventManager;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
@@ -119,6 +120,7 @@ public class WorldManager {
 	public void init(FMLInitializationEvent event) {
 		if(event.getSide() == Side.CLIENT) {
 			MinecraftForge.EVENT_BUS.register(new GuiChunkDebugEvent());
+//			MinecraftForge.EVENT_BUS.register(new GuiEventManager());
 		}
 	}
 	

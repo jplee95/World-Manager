@@ -6,12 +6,14 @@ import com.google.common.collect.Lists;
 
 import jplee.worldmanager.entity.EntityManager;
 import jplee.worldmanager.gen.WorldGeneration;
+import net.minecraft.client.gui.GuiWorldEdit;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.chunk.Chunk;
+import net.minecraftforge.client.event.GuiOpenEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.terraingen.OreGenEvent;
 import net.minecraftforge.event.world.ChunkDataEvent;

@@ -3,3 +3,4 @@ commands.wm.processchunk.outofworld=The coordinates that were put in were out of
 commands.wm.processchunk.complete=You have successfully processed this chunk
 commands.wm.reloadconfig.complete=Config has been reloaded
 commands.wm.getstates.notblock=The item selected is not a block
+wm.selectworld.edit.worldoptions=World Options
