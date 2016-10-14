@@ -73,7 +73,7 @@ public class WorldManager {
 	}
 	
 	public static void reloadConfig() {
-		config.loadConfig();
+		config.loadConfig(false);
 		if(config.isReplaceablesEnabled())
 			WorldGeneration.instance.loadReplacables();
 		if(config.isStartInvEnabled())
@@ -103,7 +103,7 @@ public class WorldManager {
 	@Mod.EventHandler
 	public void preInit(FMLPreInitializationEvent event) {
 		logger = event.getModLog();
-		config = new GenConfig(event.getSuggestedConfigurationFile());
+		config = new GenConfig(event.getSuggestedConfigurationFile(), event.getSide() == Side.SERVER);
 
 		if(config.isReplaceablesEnabled())
 			WorldGeneration.instance.loadReplacables();

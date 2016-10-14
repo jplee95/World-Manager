@@ -16,12 +16,20 @@ public class CodeDefinition {
 	private Map<String,Pair<String,String>> fields;
 	
 	public CodeDefinition(String obfName, String name, boolean isObf) {
-		this.name = name;
+		this.name = isObf ? obfName : name;
 		this.isObf = isObf;
 		this.parent = null;
 		
 		this.methods = Maps.newHashMap();
 		this.fields = Maps.newHashMap();
+	}
+	
+	public CodeDefinition(String name, boolean isObf) {
+		this(name, name, isObf);
+	}
+	
+	public String asClass() {
+		return "L" + name + ";";
 	}
 	
 	public Pair<String, String> addMethod(String obfName, String name, String obfDes, String desc) {
@@ -58,6 +66,11 @@ public class CodeDefinition {
 		return this.fields.put(name, func);
 	}
 
+	public Pair<String, String> addField(String name, String desc) {
+		Pair<String,String> func = new Pair<String,String>(name,desc);
+		return this.fields.put(name, func);
+	}
+	
 	public String getFieldName(String name) {
 		return this.getField(name).getKey();
 	}

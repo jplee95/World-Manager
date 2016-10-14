@@ -27,7 +27,10 @@ import net.minecraft.launchwrapper.IClassTransformer;
 
 public abstract class ClassTransformer implements IClassTransformer {
 
+	private InsnList workList;
+	
 	public ClassTransformer() {
+		workList = null;
 	}
 
 	@Override
@@ -59,6 +62,7 @@ public abstract class ClassTransformer implements IClassTransformer {
 	public abstract void transform(int index, ClassNode classNode, boolean isObf);
 	
 	public boolean foundOpcode(AbstractInsnNode node, int opcode, Object...values) {
+		if(node == null) return false;
 		if(node.getOpcode() != opcode) return false;
 		switch(node.getType()) {
 		case InsnNode.INSN: 				return true;
@@ -81,7 +85,66 @@ public abstract class ClassTransformer implements IClassTransformer {
 	}
 	
 	protected boolean foundOpcode(AbstractInsnNode node, int opcode) {
+		if(node == null) return false;
 		return node.getOpcode() == opcode;
 	}
 	
+	protected void newWorkList() {
+		if(this.workList == null)
+			this.workList = new InsnList();
+		else
+			this.workList.clear();
+	}
+	
+	protected void addNode(int opcode) {
+		this.workList.add(new InsnNode(opcode));
+	}
+	
+	protected void addVarNode(int opcode, int var) {
+		this.workList.add(new VarInsnNode(opcode, var));
+	}
+	
+	protected void addLdcNode(Object cst) {
+		this.workList.add(new LdcInsnNode(cst));
+	}
+	
+	protected void addFieldNode(int opcode, CodeDefinition def, String target) {
+		this.workList.add(new FieldInsnNode(opcode, def.name, def.getFieldName(target), def.getFieldDesc(target)));
+	}
+
+	protected void addFieldNode(int opcode, String owner, String name, String desc) {
+		this.workList.add(new FieldInsnNode(opcode, owner, name, desc));
+	}
+	
+	protected void addMethodNode(int opcode, CodeDefinition def, String target, boolean itf) {
+		this.workList.add(new MethodInsnNode(opcode, def.name, def.getFieldName(target), def.getFieldDesc(target), itf));
+	}
+
+	protected void addMethodNode(int opcode, String owner, String name, String desc, boolean itf) {
+		this.workList.add(new MethodInsnNode(opcode, owner, name, desc, itf));
+	}
+	
+	protected void addJumpNode(int opcode, LabelNode label) {
+		this.workList.add(new JumpInsnNode(opcode, label));
+	}
+	
+	protected void addLabelNode(LabelNode label) {
+		this.workList.add(label);
+	}
+	
+	protected void addAbstractNode(AbstractInsnNode node) {
+		this.workList.add(node);
+	}
+	
+	protected void insert(InsnList list) {
+		list.insert(this.workList);
+	}
+	
+	protected void insert(AbstractInsnNode location, InsnList list) {
+		list.insert(location, this.workList);
+	}
+	
+	protected void insertBefore(AbstractInsnNode location, InsnList list) {
+		list.insertBefore(location, this.workList);
+	}
 }

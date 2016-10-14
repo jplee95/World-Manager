@@ -4,3 +4,7 @@ commands.wm.processchunk.complete=You have successfully processed this chunk
 commands.wm.reloadconfig.complete=Config has been reloaded
 commands.wm.getstates.notblock=The item selected is not a block
 wm.selectworld.edit.worldoptions=World Options
+wm.selectworld.edit.worldoptions.title=World Options
+wm.selectworld.edit.worldoptions.cleanregistry=Clean World Registry
+wm.selectworld.edit.worldoptions.cleanregistry.warn=Do not use this unless you know what you are doing!
+wm.selectworld.edit.worldoptions.cleanregistry.confirm=Are you sure that you want to do this?

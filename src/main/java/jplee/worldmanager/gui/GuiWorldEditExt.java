@@ -28,6 +28,11 @@ public class GuiWorldEditExt extends GuiWorldEdit {
 	
 	@Override
 	public void initGui() {
+		if(worldId != null) {
+			System.out.println();
+		}
+
+		System.out.println();
 	}
 	
 //	@Override
@@ -37,11 +42,7 @@ public class GuiWorldEditExt extends GuiWorldEdit {
 	
 	@Override
 	protected void actionPerformed(GuiButton button) throws IOException {
-		if(worldId != null) {
-			System.out.println();
-		} else if(button.id == 5) {
-			this.mc.displayGuiScreen(new GuiWorldOptions(this, worldId));
-		}
+		CodeDefins.worldOptionAction(button.id, this, worldId);
 	}
 	
 	

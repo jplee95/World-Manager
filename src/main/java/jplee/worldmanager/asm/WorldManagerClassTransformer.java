@@ -32,7 +32,6 @@ public class WorldManagerClassTransformer extends ClassTransformer {
 	public String[] getClassesToTransform() {
 		return new String[] {
 			"net.minecraft.client.gui.GuiWorldEdit",
-			"net.minecraft.block.BlockCactus"
 		};
 	}
 
@@ -40,42 +39,7 @@ public class WorldManagerClassTransformer extends ClassTransformer {
 	public void transform(int index, ClassNode classNode, boolean isObf) {
 		switch(index) {
 		case 0: transformWorldEdit(classNode); break;
-//		case 1: transformCactus(classNode); break;
 		
-		}
-	}
-	
-	private void transformCactus(ClassNode classNode) {
-		for(MethodNode method : classNode.methods) {
-			if(method.name.equals(CodeDefins.BLOCK_CACTUS.getMethodName("onEntityCollidedWithBlock"))
-			&& method.desc.equals(CodeDefins.BLOCK_CACTUS.getMethodDesc("onEntityCollidedWithBlock"))) {
-				AbstractInsnNode targetNode = null;
-				
-				for(AbstractInsnNode node : method.instructions.toArray()) {
-					if(this.foundOpcode(node, ALOAD, 4)) {
-						if(this.foundOpcode(node.getNext(), GETSTATIC)) {
-							targetNode = node;
-							break;
-						}
-					}
-				}
-				
-				AbstractInsnNode popNode = targetNode;
-				while(popNode.getOpcode() != POP) {
-					popNode = popNode.getNext();
-					
-					if(popNode == null) return;
-				}
-				
-				InsnList toInsert = new InsnList();
-				LabelNode label1 = new LabelNode();
-				toInsert.add(new MethodInsnNode(INVOKESTATIC, "jplee/worldmanager/asm/CodeDefins", "cactusDoesDamage", "()Z", false));
-				toInsert.add(new JumpInsnNode(IFEQ, label1));
-				
-				method.instructions.insertBefore(targetNode, toInsert);
-				method.instructions.insert(popNode, label1);
-				break;
-			}
 		}
 	}
 	
@@ -83,7 +47,7 @@ public class WorldManagerClassTransformer extends ClassTransformer {
 		for(MethodNode method : classNode.methods) {
 			if(method.name.equals(CodeDefins.GUI_WORLD_EDIT.getMethodName("actionPerformed"))
 			&& method.desc.equals(CodeDefins.GUI_WORLD_EDIT.getMethodDesc("actionPerformed"))) {
-				
+				transformWorldEdit_actionPerformed(classNode, method);
 			}
 			if(method.name.equals(CodeDefins.GUI_WORLD_EDIT.getMethodName("initGui"))
 			&& method.desc.equals(CodeDefins.GUI_WORLD_EDIT.getMethodDesc("initGui"))) {
@@ -92,35 +56,48 @@ public class WorldManagerClassTransformer extends ClassTransformer {
 		}
 	}
 
+	private void transformWorldEdit_actionPerformed(ClassNode classNode, MethodNode method) {
+		AbstractInsnNode targetNode = null;
+		
+		for(AbstractInsnNode node : method.instructions.toArray()) {
+			if(this.foundOpcode(node, RETURN)) {
+				targetNode = node.getPrevious().getPrevious();
+				break;
+			}
+		}
+		
+		if(targetNode != null) {
+			this.newWorkList();
+			this.addVarNode(ALOAD, 1);
+			this.addFieldNode(GETFIELD, CodeDefins.GUI_BUTTON, "id");
+			this.addVarNode(ALOAD, 0);
+			this.addVarNode(ALOAD, 0);
+			this.addFieldNode(GETFIELD, CodeDefins.GUI_WORLD_EDIT, "worldId");
+			this.addMethodNode(INVOKESTATIC, CodeDefins.CODE_DEFINES, "worldOptionAction", false);
+			this.insertBefore(targetNode, method.instructions);
+		}
+	}
+
 	private void transformWorldEdit_initGui(ClassNode classNode, MethodNode method) {
 		AbstractInsnNode targetNode = null;
 		
 		for(AbstractInsnNode node : method.instructions.toArray()) {
-			if(node.getOpcode() == ALOAD) {
-				if(((VarInsnNode) node).var == 0 && node.getNext() != null) {
-					if(node.getNext().getOpcode() == NEW) {
-						if(((TypeInsnNode) node.getNext()).desc.equals(CodeDefins.GUI_BUTTON.name)) {
-							targetNode = node;
-							break;
-						}
-					}
+			if(this.foundOpcode(node, ALOAD, 0)) {
+				if(this.foundOpcode(node.getNext(), NEW, CodeDefins.GUI_BUTTON.name)) {
+					targetNode = node;
+					break;
 				}
 			}
 		}
 		
 		if(targetNode != null) {
-			InsnList toInsert = new InsnList();
-			toInsert.add(new FieldInsnNode(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;"));
-			toInsert.add(new LdcInsnNode("HELLO WORLD FROM SOMEWHERE!"));
-			toInsert.add(new MethodInsnNode(INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V", false));
-
-
-			toInsert.add(new VarInsnNode(ALOAD, 0));
-			toInsert.add(new VarInsnNode(ALOAD, 0));
-			toInsert.add(new FieldInsnNode(GETFIELD, CodeDefins.GUI_WORLD_EDIT.name, CodeDefins.GUI_WORLD_EDIT.getFieldName("buttonList"), CodeDefins.GUI_WORLD_EDIT.getFieldDesc("buttonList")));
-			toInsert.add(new MethodInsnNode(INVOKESTATIC, "jplee/worldmanager/asm/CodeDefins", "addWorldOptionButton", "(L" + CodeDefins.GUI_WORLD_EDIT.name + ";Ljava/util/List;)V", false));
-			
-			method.instructions.insertBefore(targetNode, toInsert);
+			this.newWorkList();
+			this.addVarNode(ALOAD, 0);
+			this.addVarNode(ALOAD, 0);
+			this.addFieldNode(GETFIELD, CodeDefins.GUI_WORLD_EDIT, "buttonList");
+			this.addMethodNode(INVOKESTATIC, CodeDefins.CODE_DEFINES, "addWorldOptionButton", false);
+//			this.addMethodNode(INVOKESTATIC, "jplee/worldmanager/asm/CodeDefins", "addWorldOptionButton", "(" + CodeDefins.GUI_WORLD_EDIT.asClass() + "Ljava/util/List;)V", false);
+			this.insertBefore(targetNode, method.instructions);
 		}
 	}
 

@@ -8,10 +8,12 @@ import net.minecraftforge.common.config.Property;
 public class GenConfig {
 	
 	private Configuration config;
+	private boolean isServer;
 	
 	private boolean enableReplaceables = false;
 	private boolean enableOreGen = false;
 	private boolean enableStartInv = false;
+	private boolean cleanWorldReg = false;
 	
 	private String[] replaceables;
 	private String[] starting;
@@ -29,28 +31,37 @@ public class GenConfig {
 		
 	};
 	
-	public GenConfig(File file) {
-		config = new Configuration(file);
-		this.loadConfig();
+	public GenConfig(File file, boolean isServer) {
+		this.config = new Configuration(file);
+		this.isServer = isServer;
+		this.loadConfig(true);
 	}
 	
-	public void loadConfig() {
-		config.load();
+	public void loadConfig(boolean saveConfig) {
+		this.config.load();
 		Property prop;
 		
-		prop = config.get("enable", "replace", false);
+		prop = this.config.get("enable", "replace", false);
 		prop.setComment("Enable block replacement, Default: false");
-		enableReplaceables = prop.getBoolean();
+		this.enableReplaceables = prop.getBoolean();
 
-//		prop = config.get("enable", "oreGen", false);
+//		prop = this.config.get("enable", "oreGen", false);
 //		prop.setComment("Enable ore generation overrides, Default: false");
-//		enableOreGen = prop.getBoolean();
+//		this.enableOreGen = prop.getBoolean();
 
-		prop = config.get("enable", "startInv", false);
+		prop = this.config.get("enable", "startInv", false);
 		prop.setComment("Enable starting inventory, Default: false");
-		enableStartInv = prop.getBoolean();
+		this.enableStartInv = prop.getBoolean();
 
-		prop = config.get("general", "replace", defaultReplaceables);
+		if(isServer) {
+			prop = this.config.get("enable", "cleanWorldRegistry", false);
+			prop.setComment("This will clean all the registry of unused locations. Default: false\n"
+						  + "Do not use this unless you know what you are doing!\n"
+						  + "This will return to false after server start!");
+			this.cleanWorldReg = prop.getBoolean();
+		} else this.cleanWorldReg = false;
+		
+		prop = this.config.get("general", "replace", this.defaultReplaceables);
 		prop.setComment("This list is used for replacing generated blocks\n"
 					  + "Each new line will create a new entry for the replacement process\n"
 					  + "All entries are sorted by their random value from smallest to greatest\n"
@@ -67,43 +78,43 @@ public class GenConfig {
 					  + "  dimension=int - The dimension that this will happen in. Range: any integer, Default: any dimension\n"
 					  + "  min=int - the minimum height that it will replace at. Inclusive, Range: 0 to 255, Default: 0\n"
 					  + "  max=int - the maximum height that it will replace at. Inclusive, Range: 0 to 255, Default: 255\n"
-//					  + "  oredict=boolean - replace will use ore dictionary. Range: true to false, Default: false (NOT IMPLEMENTED YET)\n"
 					  + "  loot=string - the loot table that will be set to lootable inventories\n"
 //					  + "  match=string - matches states given, separate states with a camma, only works on equivalent states (NOT IMPLEMENTED YET)\n"
 					  + "More will come in the future");
-		replaceables = prop.getStringList();
+		this.replaceables = prop.getStringList();
 		
-		prop = config.get("general", "startInv", defaultStarting);
+		prop = this.config.get("general", "startInv", this.defaultStarting);
 		prop.setComment("This list is for adding to the starting inventory\n"
 					  + "Each new line is a new item to add the starting inventory\n"
 					  + "There is a max of 18 items to prevent inventory overflow\n"
 					  + "you can comment out lines with '#' if needed\n"
 					  + "Every line needs to be setup as below. nbt, count and meta are optional:\n"
 					  + "  unlocalized_block_id:meta count {nbt}");
-		starting = prop.getStringList();
+		this.starting = prop.getStringList();
 		
-//		prop = config.get("general", "oreGen", defaultOreGen);
+//		prop = this.config.get("general", "oreGen", this.defaultOreGen);
 //		prop.setComment("This list is for overriding world ore generation\n"
 //					  + "Each new line is a new override\n"
 //					  + "you can comment out lines with '#' if needed\n"
 //					  + "Every line needs to be setup as below,\n"
 //					  + "  unlocalized_block_id[state]");
-//		oreGen = prop.getStringList();
+//		this.oreGen = prop.getStringList();
 		
-//		prop = config.get("general", "maxProcesses", -1);
+//		prop = this.config.get("general", "maxProcesses", -1);
 //		prop.setComment("The maximum amount of chunks that can be processed in one tick, set to -1 for no limit\n"
 //					  + "range:-1 to 256, default:-1\n"
 //					  + "EXPERAMENTAL");
 //		prop.setMinValue(-1);
 //		prop.setMaxValue(256);
 //		prop.requiresMcRestart();
-//		maxProcesses = prop.getInt();
+//		this.maxProcesses = prop.getInt();
 		
-		config.save();
+		if(saveConfig)
+			this.config.save();
 	}
 	
 	public final String[] getReplaceables() {
-		return replaceables;
+		return this.replaceables;
 	}
 	
 	public int getMaxProcesses() {
@@ -111,18 +122,22 @@ public class GenConfig {
 	}
 
 	public boolean isReplaceablesEnabled() {
-		return enableReplaceables;
+		return this.enableReplaceables;
 	}
 
 	public boolean isOreGenEnabled() {
-		return enableOreGen;
+		return this.enableOreGen;
 	}
 
 	public boolean isStartInvEnabled() {
-		return enableStartInv;
+		return this.enableStartInv;
 	}
 
+	public boolean shouldCleanWorldReg() {
+		return this.cleanWorldReg;
+	}
+	
 	public String[] getStartingInventory() {
-		return starting;
+		return this.starting;
 	}
 }
