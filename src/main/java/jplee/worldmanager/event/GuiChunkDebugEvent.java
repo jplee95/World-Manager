@@ -1,4 +1,4 @@
-package jplee.worldmanager.gui;
+package jplee.worldmanager.event;
 
 import jplee.worldmanager.WorldManager;
 import jplee.worldmanager.gen.WorldGeneration;

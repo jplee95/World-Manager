@@ -53,13 +53,21 @@ public class GenConfig {
 		prop.setComment("Enable starting inventory, Default: false");
 		this.enableStartInv = prop.getBoolean();
 
-		if(isServer) {
-			prop = this.config.get("enable", "cleanWorldRegistry", false);
+		if(isServer || config.hasKey("server", "cleanWorldRegistry")) {
+			prop = this.config.get("server", "cleanWorldRegistry", false);
 			prop.setComment("This will clean all the registry of unused locations. Default: false\n"
 						  + "Do not use this unless you know what you are doing!\n"
 						  + "This will return to false after server start!");
-			this.cleanWorldReg = prop.getBoolean();
-		} else this.cleanWorldReg = false;
+			if(isServer) {
+				this.cleanWorldReg = prop.getBoolean();
+				if(this.cleanWorldReg == true) {
+					prop.set(false);
+				}
+			}
+		} 
+		if(!isServer) {
+			this.cleanWorldReg = false;
+		}
 		
 		prop = this.config.get("general", "replace", this.defaultReplaceables);
 		prop.setComment("This list is used for replacing generated blocks\n"

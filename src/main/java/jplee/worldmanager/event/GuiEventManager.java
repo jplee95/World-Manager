@@ -1,4 +1,4 @@
-package jplee.worldmanager.gui;
+package jplee.worldmanager.event;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.audio.PositionedSoundRecord;

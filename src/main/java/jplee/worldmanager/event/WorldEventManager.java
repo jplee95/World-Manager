@@ -1,9 +1,10 @@
-package jplee.worldmanager;
+package jplee.worldmanager.event;
 
 import java.util.Collection;
 
 import com.google.common.collect.Lists;
 
+import jplee.worldmanager.WorldManager;
 import jplee.worldmanager.entity.EntityManager;
 import jplee.worldmanager.gen.WorldGeneration;
 import net.minecraft.client.gui.GuiWorldEdit;

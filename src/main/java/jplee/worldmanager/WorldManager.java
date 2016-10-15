@@ -1,18 +1,25 @@
 package jplee.worldmanager;
 
+import java.io.IOException;
+
 import org.apache.logging.log4j.Logger;
 
 import jplee.worldmanager.command.CommandWorldManager;
 import jplee.worldmanager.config.GenConfig;
 import jplee.worldmanager.entity.EntityManager;
+import jplee.worldmanager.event.GuiChunkDebugEvent;
+import jplee.worldmanager.event.GuiEventManager;
+import jplee.worldmanager.event.WorldEventManager;
 import jplee.worldmanager.gen.WorldGeneration;
-import jplee.worldmanager.gui.GuiChunkDebugEvent;
-import jplee.worldmanager.gui.GuiEventManager;
+import jplee.worldmanager.util.SaveFileUtils;
+import net.minecraft.client.Minecraft;
+import net.minecraft.server.MinecraftServer;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLServerAboutToStartEvent;
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 import net.minecraftforge.fml.common.event.FMLServerStoppedEvent;
 import net.minecraftforge.fml.relauncher.Side;
@@ -129,8 +136,25 @@ public class WorldManager {
 	}
 
 	@Mod.EventHandler
+	public void serverWillStart(FMLServerAboutToStartEvent event) {
+		if(event.getSide() == Side.SERVER) {
+			if(config.shouldCleanWorldReg()) {
+				MinecraftServer server = event.getServer();
+				this.info("Cleaning %s registires", server.getFolderName());
+				try { 
+					SaveFileUtils.cleanWorldRegistry(server.getDataDirectory(), server.getFolderName());
+				} catch(IOException e) {
+					this.error("Unable to read and write to file for %s", server.getFolderName());
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+	
+	@Mod.EventHandler
 	public void serverStarting(FMLServerStartingEvent event) {
 		event.registerServerCommand(new CommandWorldManager());
+		
 	}
 	
 	@Mod.EventHandler

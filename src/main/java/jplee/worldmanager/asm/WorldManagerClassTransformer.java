@@ -25,6 +25,8 @@ import com.sun.xml.internal.ws.org.objectweb.asm.Type;
 import static org.objectweb.asm.Opcodes.*;
 
 import net.minecraft.launchwrapper.IClassTransformer;
+import net.minecraftforge.common.ForgeHooks;
+import net.minecraftforge.common.ForgeModContainer;
 
 public class WorldManagerClassTransformer extends ClassTransformer {
 
@@ -96,7 +98,6 @@ public class WorldManagerClassTransformer extends ClassTransformer {
 			this.addVarNode(ALOAD, 0);
 			this.addFieldNode(GETFIELD, CodeDefins.GUI_WORLD_EDIT, "buttonList");
 			this.addMethodNode(INVOKESTATIC, CodeDefins.CODE_DEFINES, "addWorldOptionButton", false);
-//			this.addMethodNode(INVOKESTATIC, "jplee/worldmanager/asm/CodeDefins", "addWorldOptionButton", "(" + CodeDefins.GUI_WORLD_EDIT.asClass() + "Ljava/util/List;)V", false);
 			this.insertBefore(targetNode, method.instructions);
 		}
 	}
