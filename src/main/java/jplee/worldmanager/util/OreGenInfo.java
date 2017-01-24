@@ -11,35 +11,36 @@ import jplee.jlib.util.Property;
 import jplee.worldmanager.WorldManager;
 import jplee.worldmanager.gen.WorldGeneration;
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockStone;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 
-public class Replaceable extends InternalDataStructure<Object> {
+
+public class OreGenInfo extends InternalDataStructure<Object> {
 
 	public static final Pattern lineFormat = Pattern.compile("^((?:\\w+:)?\\w+(?:\\[(?:(?:\\w+=[\\w*]+|\\*?),?)*\\])?)\\|?((?:(?:\\w+=[\\w:/\\[\\],=.]+\\|?)+))?$");
 	public static final Pattern blockPattern = Pattern.compile("((?:\\w+:)?\\w+)(?:\\[((?:(?:\\w+=[\\w*]+|\\*?),?)*)\\])?");
 	public static final Pattern propPattern = Pattern.compile("(\\w+)=((?:(?:(?:\\w+:)?\\w+(?:\\[(?:(?:\\w+=(?:\\w+|\\*)|\\*),?)*\\])?|(?:\\+|-)?\\d*\\.\\d+|[\\w]+),?)+)");
 
-	private static final String stringKeys = "loot|biome";
-	private static final String stringListKeys = "match";
-	private static final String intKeys = "min|max|dimension";
-	private static final String doubleKeys = "random";
+	private static final String stringKeys = "type";
+	private static final String stringListKeys = "biome";
+	private static final String intKeys = "min|max|minSize|maxSize|chance|dimension";
+	private static final String boolKeys = "override";
 	private static final String blockStateKeys = "replace";
-	private static final String untrackedKeys = "oredict|usingore";
-	private static final String unImpKeys = "match|biome|unimplemented";
-	private static final String keys = stringKeys + "|" + stringListKeys + "|" + intKeys + "|" + doubleKeys + "|" + blockStateKeys + "|" + untrackedKeys;
+	private static final String unImpKeys = "type|biome|unimplemented";
+	private static final String keys = stringKeys + "|" + stringListKeys + "|" + intKeys + "|" + boolKeys + "|" + blockStateKeys;
 	
 	private static final Map<String,Object> defaultValues = ImmutableMap.<String,Object>builder()
-		.put("replace", getBlockStateWrapper(Blocks.AIR.getDefaultState(), false))
+		.put("replace", getBlockStateWrapper(Blocks.STONE.getDefaultState()
+			.withProperty(BlockStone.VARIANT, BlockStone.EnumType.STONE), true))
 		.put("dimension", WorldGeneration.ANY_DIMENSION)
+		.put("type", "standard")
 		.put("min", 0)
+		.put("chance", 2)
 		.put("max", 255)
-		.put("random", 1.0d)
-		.put("match", "")
-		.put("loot", "")
-		.put("oredict", "")
-		.put("biome", "")
-		.put("usingore", false)
+		.put("minSize", 4)
+		.put("maxSize", 8)
+		.put("override", false)
 		.build();
 	
 	public IBlockState getBlockState(String key) {
@@ -57,7 +58,7 @@ public class Replaceable extends InternalDataStructure<Object> {
 	public boolean isAdequateState(String key, IBlockState state) {
 		return ((BlockStateWrapper) this.get(key)).isAdequateState(state);
 	}
-
+	
 	protected void setBlockState(String key, String part, boolean wildCard) {
 		Matcher match = blockPattern.matcher(part);
 		if(match.matches()) {
@@ -67,6 +68,10 @@ public class Replaceable extends InternalDataStructure<Object> {
 		}
 	}
 	
+	protected void setBlockState(String key, IBlockState state, boolean wildCard) {
+		this.setBlockState(key, state.toString(), wildCard);
+	}
+
 	private static BlockStateWrapper getBlockStateWrapper(IBlockState state, boolean wildCard) {
 		Matcher match = blockPattern.matcher(state.toString());
 		if(match.matches()) {
@@ -77,53 +82,40 @@ public class Replaceable extends InternalDataStructure<Object> {
 		return new BlockStateWrapper("minecraft:air", null, wildCard);
 	}
 	
-	protected void setBlockState(String key, IBlockState state, boolean wildCard) {
-		this.setBlockState(key, state.toString(), wildCard);
-	}
-	
-	protected void addOreDictionary(String oreDictionary) {
-		this.set("usingore", true);
-		this.set("oredict", oreDictionary);
-	}
-
 	@SafeVarargs
-	public static Replaceable build(String replaceable, boolean wildCard, Property<Object>...properties) {
-		Replaceable rep = new Replaceable();
+	public static OreGenInfo build(IBlockState ore, Property<Object>...properties) {
+		OreGenInfo info = new OreGenInfo();
 		
-		rep.setBlockState("block", replaceable, wildCard);
+		info.setBlockState("ore", ore, false);
 		for(Property<Object> prop : properties) {
-			if(prop.key.matches(keys) && !rep.hasData(prop.key)) {
+			if(prop.key.matches(keys) && !info.hasData(prop.key)) {
 				if(prop.key.matches(unImpKeys)) {
 					WorldManager.logger.warning("Property %s for '%s' has not been implemented, skipping",
-						prop.key, replaceable.toString());
+						prop.key, ore.toString());
 					continue;
 				}
-				rep.set(prop);
+				info.set(prop);
 			} else {
-				WorldManager.logger.error("Property %s was not recognized for %s, skipping", prop.key, replaceable.toString());
+				WorldManager.logger.error("Property %s was not recognized for %s, skipping", prop.key, ore.toString());
 			}
 		}
 		
-		return rep;
+		return info;
 	}
 	
-	public static Replaceable build(String string) {
-		Replaceable replaceable = new Replaceable();
+	public static OreGenInfo build(String string) {
+		OreGenInfo info = new OreGenInfo();
 		
 		string.replaceAll("\\s+", "");
-
+		
 		if(string.endsWith("|")) {
 			WorldManager.logger.error("Formating for '%s' is incorrect", string);
 			return null;
 		}
-
+		
 		Matcher match = lineFormat.matcher(string);
 		if(match.matches()) {
-			if(match.group(1).startsWith("ore:")) {
-				replaceable.addOreDictionary(match.group(1).substring(4));
-			} else {
-				replaceable.setBlockState("block", match.group(1), true);
-			}
+			info.setBlockState("ore", match.group(1), false);
 			if(match.group(2) != null) {
 				Matcher propMatch = propPattern.matcher(match.group(2));
 				while(propMatch.find()) {
@@ -137,23 +129,19 @@ public class Replaceable extends InternalDataStructure<Object> {
 							continue;
 						}
 						if(prop.matches(stringKeys)) {
-							replaceable.set(prop, val);
-							continue;
-						}
-						if(prop.matches(stringListKeys)) {
-							replaceable.set(prop, val.split(","));
+							info.set(prop, val);
 							continue;
 						}
 						if(prop.matches(blockStateKeys)) {
-							replaceable.setBlockState(prop, val.replaceAll("\\[\\]", "\\*"), false);
+							info.setBlockState(prop, val, true);
 							continue;
 						}
 						if(prop.matches(intKeys)) {
-							replaceable.set(prop, Integer.parseInt(val));
+							info.set(prop, Integer.parseInt(val));
 							continue;
 						}
-						if(prop.matches(doubleKeys)) {
-							replaceable.set(prop, Double.parseDouble(val));
+						if(prop.matches(boolKeys)) {
+							info.set(prop, Boolean.parseBoolean(val));
 							continue;
 						}
 					} catch(Exception e) {
@@ -166,12 +154,11 @@ public class Replaceable extends InternalDataStructure<Object> {
 			WorldManager.logger.error("Formating for '%s' is incorrect", string);
 			return null;
 		}
-		
-		replaceable.addMissing();
-		return replaceable;
+		info.addMissing();
+		return info;
 	}
-	
-	public Replaceable addMissing() {
+
+	public OreGenInfo addMissing() {
 		for(String key : keys.split("\\|")) {
 			if(!this.hasData(key) && !key.matches(unImpKeys)) {
 				this.set(key, defaultValues.get(key));
@@ -179,18 +166,12 @@ public class Replaceable extends InternalDataStructure<Object> {
 		}
 		return this;
 	}
-
+	
 	@Override
 	public String toString() {
-		String str = "";
-		if(this.getBoolean("usingore")) {
-			str = "ore:" + this.getString("oredict");
-		} else {
-			str = this.getBlockStateWrapper("block").toString();
-		}
-		
+		String str = this.getBlockStateWrapper("ore").toString();
 		for(Property<Object> prop : this.data.values()) {
-			if(prop.key.equals("block") || prop.key.equals("oredict") || prop.key.equals("usingore")) {
+			if(prop.key.equals("ore")) {
 				continue;
 			}
 			str += "|" + prop.toString();

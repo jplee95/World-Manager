@@ -20,20 +20,13 @@ plugins {
     id "net.minecraftforge.gradle.forge" version "2.0.2"
 }
 */
-version = "1.10.2-1.0.3"
-group= "jplee.worldmanager" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
+
+version = "1.10.2-1.0.4"
+group = "jplee.worldmanager" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = "worldmanager"
 
-// Enables core mod components
-jar {
-    manifest {
-        attributes 'FMLCorePlugin': 'com.jplee.worldmanager.asm.WorldManagerPlugin'
-        attributes 'FMLCorePluginContainsMod' 'true'
-    }
-}
-
 minecraft {
-    version = "1.10.2-12.18.1.2039"
+    version = "1.10.2-12.18.3.2185"
     runDir = "run"
     
     // the mappings can be changed at any time, and must be in the following format.
@@ -86,5 +79,15 @@ processResources
     // copy everything else, thats not the mcmod.info
     from(sourceSets.main.resources.srcDirs) {
         exclude 'mcmod.info'
+    }
+}
+
+jar {
+    manifest {
+    /*
+        // Enables core mod components
+        attributes 'FMLCorePlugin' : 'jplee.worldmanager.asm.WorldManagerPlugin'
+        attributes 'FMLCorePluginContainsFMLMod' : 'true'
+    */
     }
 }

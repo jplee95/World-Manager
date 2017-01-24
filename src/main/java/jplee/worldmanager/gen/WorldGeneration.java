@@ -1,5 +1,6 @@
 package jplee.worldmanager.gen;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
@@ -13,10 +14,11 @@ import com.google.common.collect.Multimap;
 import com.google.common.primitives.Doubles;
 
 import jplee.worldmanager.WorldManager;
+import jplee.worldmanager.config.GenConfig;
+import jplee.worldmanager.gen.ore.WorldGenVanillaMinable;
+import jplee.worldmanager.util.OreGenInfo;
 import jplee.worldmanager.util.Replaceable;
 import net.minecraft.block.Block;
-import net.minecraft.block.BlockDynamicLiquid;
-import net.minecraft.block.BlockStaticLiquid;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
@@ -28,95 +30,154 @@ import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.IChunkGenerator;
 import net.minecraft.world.chunk.IChunkProvider;
+import net.minecraft.world.gen.feature.WorldGenMinable;
 import net.minecraft.world.storage.loot.ILootContainer;
 import net.minecraftforge.fml.common.IWorldGenerator;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.oredict.OreDictionary;
 
 public class WorldGeneration {
-
-	public static WorldGeneration instance = new WorldGeneration();
+	
+	public static final WorldGeneration instance = new WorldGeneration();
 	
 	public static final int ANY_DIMENSION = -93578231;
 	
-	private Multimap<Integer,ChunkPos> unloadedPendingChunks;
 	private Multimap<Integer,ChunkPos> loadedPendingChunks;
-
-	private Map<Integer,Multimap<Block,Replaceable>> modInstalledReplaceables;
+	private Multimap<Integer,ChunkPos> unloadedPendingChunks;
+	
 	private Map<Integer,Multimap<Block,Replaceable>> sortedReplaceables;
-	private Map<Integer,Multimap<String,Replaceable>> oreDictionaries;
-
+	private Map<Integer,Multimap<String,Replaceable>> sortedOreDictionaries;
+	
+	private Map<Integer,Multimap<Block,Replaceable>> modInstalledReplaceables;
+	@SuppressWarnings("unused")
+	private Map<Integer,Multimap<String,Replaceable>> modInstalledOreDictionaries;
+	
+	private Multimap<Integer,OreGenInfo> generatableOres;
+	
+	private List<Integer> replaceableWorlds;
+	private List<Integer> oreGenWorlds;
+	
+	private boolean replaceablesBlacklist;
+	private boolean oreGenBlacklist;
+	
+	private boolean enableReplaceables;
+	private boolean enableOreGen;
+	
 	private WorldGeneration() {
 		this.loadedPendingChunks = HashMultimap.create();
 		this.unloadedPendingChunks = HashMultimap.create();
 		this.modInstalledReplaceables = Maps.newHashMap();
-		this.oreDictionaries = Maps.newHashMap();
+		this.sortedOreDictionaries = Maps.newHashMap();
 		this.sortedReplaceables = Maps.newHashMap();
+		this.generatableOres = HashMultimap.create();
+		this.replaceableWorlds = Lists.newArrayList();
+		this.oreGenWorlds = Lists.newArrayList();
+		
+		this.replaceablesBlacklist = true;
+		this.oreGenBlacklist = true;
+		
+		this.enableReplaceables = false;
+		this.enableOreGen = false;
 	}
-
-	public void loadReplacables() {
+	
+	public void loadWorldGenerationInfo(GenConfig config) {
 		Map<Integer,Multimap<Block,Replaceable>> replaceables = Maps.newHashMap();
 		Map<Integer,Multimap<String,Replaceable>> oreReps = Maps.newHashMap();
-		for(String rep : WorldManager.getReplaceables()) {
- 			if(!rep.startsWith("#") && !rep.isEmpty()) {
-				Replaceable replaceable = Replaceable.build(rep);
-				int dimension = ANY_DIMENSION;
-				if(replaceable.hasProperty("dimension")) {
-					dimension = replaceable.getPropertyAsInt("dimension");
+
+		this.replaceablesBlacklist = config.isReplaceablesBlacklist();
+		this.oreGenBlacklist = config.isOreGenBlacklist();
+
+		this.enableReplaceables = config.isReplaceablesEnabled();
+		this.enableOreGen = config.isOreGenEnabled();
+		
+		for(int i = 0; i < config.getReplaceablesDimensionsList().length; i++)
+			this.replaceableWorlds.add(config.getReplaceablesDimensionsList()[i]);
+
+		Arrays.asList(config.getReplaceables()).stream()
+		.filter(line -> !line.startsWith("#") && !line.isEmpty())
+		.forEach(line -> {
+			Replaceable rep = Replaceable.build(line);
+			try {
+				int dimension = rep.hasData("dimension") ? rep.getInt("dimension") : ANY_DIMENSION;
+				if(this.replaceableWorlds.contains(dimension) && !this.replaceablesBlacklist ||
+					!this.replaceableWorlds.contains(dimension) && this.replaceablesBlacklist ||
+					dimension == ANY_DIMENSION) {
+					if(rep.getBoolean("usingore")) {
+						String oreDict = rep.getString("oredict");
+						add(oreReps, dimension, oreDict, rep);
+					} else {
+						Block block = rep.getBlockFromBlockState("block");
+						add(replaceables, dimension, block, rep);
+					}
 				}
-				if(replaceable.getPropertyAsBoolean("usingore")) {
-					String oreDict = replaceable.getPropertyAsString("oredict");
-					Multimap<String,Replaceable> reps = oreDictionaries.get(dimension);
-					if(reps == null) {
-						oreReps.put(dimension, HashMultimap.<String,Replaceable>create());
-						reps = oreReps.get(dimension);
-					}
-					reps.put(oreDict, replaceable);
-				} else {
-					Block block = replaceable.getBlockFromBlockStateProperty("block");
-					Multimap<Block, Replaceable> blocks = replaceables.get(dimension);
-					if(blocks == null) {
-						replaceables.put(dimension, HashMultimap.<Block,Replaceable>create());
-						blocks = replaceables.get(dimension);
-					}
-					blocks.put(block, replaceable);
+			} catch(Exception e) {
+				WorldManager.logger.error("Unable to read %s", rep == null ? "" :rep.toString());
+				e.printStackTrace();
+			}
+		});
+
+		this.generatableOres.clear();
+		for(int i = 0; i < config.getReplaceablesDimensionsList().length; i++)
+			this.oreGenWorlds.add(config.getReplaceablesDimensionsList()[i]);
+
+		Arrays.asList(config.getOreGeneration()).stream()
+		.filter(line -> !line.startsWith("#") && !line.isEmpty())
+		.forEach(line -> {
+			OreGenInfo info = OreGenInfo.build(line);
+			int dimension = info.hasData("dimension") ? info.getInt("dimension") : ANY_DIMENSION;
+			if(this.oreGenWorlds.contains(dimension) && !this.oreGenBlacklist ||
+				!this.oreGenWorlds.contains(dimension) && this.oreGenBlacklist ||
+				dimension == ANY_DIMENSION) {
+				if(info.getBoolean("override")) {
+					String rep = info.getBlockState("ore").toString();
+					Replaceable replaceable = Replaceable.build(rep, false);
+					add(replaceables, dimension, info.getBlockFromBlockState("ore"), replaceable);
 				}
 			}
-		}
-		replaceables.putAll(modInstalledReplaceables);
+			this.generatableOres.put(dimension, info);
+		});
 		
-		oreDictionaries.clear();
+		this.sortedOreDictionaries.clear();
 		for(int dimension : oreReps.keySet()) {
 			for(String ore : oreReps.get(dimension).keys()) {
 				List<Replaceable> list = Lists.newArrayList(oreReps.get(dimension).get(ore));
 				list.sort(replaceableComparable);
-				Multimap<String, Replaceable> oreDict = oreDictionaries.get(dimension);
+				Multimap<String, Replaceable> oreDict = this.sortedOreDictionaries.get(dimension);
 				if(oreDict == null) {
-					oreDictionaries.put(dimension, HashMultimap.<String,Replaceable>create());
-					oreDict = oreDictionaries.get(dimension); 
+					this.sortedOreDictionaries.put(dimension, HashMultimap.<String,Replaceable>create());
+					oreDict = this.sortedOreDictionaries.get(dimension); 
 				}
 				oreDict.putAll(ore, list);
 			}
 		}
 		
-		sortedReplaceables.clear();
+		this.sortedReplaceables.clear();
 		for(int dimension : replaceables.keySet()) {
 			for(Block block : replaceables.get(dimension).keys()) {
 				List<Replaceable> list = Lists.newArrayList(replaceables.get(dimension).get(block));
 				list.sort(replaceableComparable);
-				Multimap<Block, Replaceable> blocks = sortedReplaceables.get(dimension);
+				Multimap<Block, Replaceable> blocks = this.sortedReplaceables.get(dimension);
 				if(blocks == null) {
-					sortedReplaceables.put(dimension, HashMultimap.<Block,Replaceable>create());
-					blocks = sortedReplaceables.get(dimension); 
+					this.sortedReplaceables.put(dimension, HashMultimap.<Block,Replaceable>create());
+					blocks = this.sortedReplaceables.get(dimension); 
 				}
 				blocks.putAll(block, list);
 			}
 		}
 	}
-
+	
+	private static <M extends Object, K extends Object, J extends Object> boolean add(Map<M,Multimap<K,J>> map, M key1, K key2, J value) {
+		Multimap<K,J> innerMap = null;
+		if((innerMap = map.get(key1)) == null) {
+			map.put(key1, HashMultimap.<K,J>create());
+			innerMap = map.get(key1);
+		}
+		return innerMap.put(key2, value);
+	}
+	
 	private static Comparator<Replaceable> replaceableComparable = new Comparator<Replaceable>() {
 		@Override public int compare(Replaceable r1, Replaceable r2) {
-			return -Doubles.compare(r1.getPropertyAsDouble("random"), r2.getPropertyAsDouble("random"));
+			return -Doubles.compare(r1.getDouble("random"), r2.getDouble("random"));
 		}
 	};
 	
@@ -125,11 +186,11 @@ public class WorldGeneration {
 	}
 	
 	public void addNewReplaceable(Block block, Replaceable replaceable) {
-		int dimension = replaceable.getPropertyAsInt("dimension");
-		Multimap<Block, Replaceable> blocks = modInstalledReplaceables.get(dimension);
+		int dimension = replaceable.getInt("dimension");
+		Multimap<Block, Replaceable> blocks = this.modInstalledReplaceables.get(dimension);
 		if(blocks == null) {
-			modInstalledReplaceables.put(dimension, HashMultimap.<Block,Replaceable>create());
-			blocks = modInstalledReplaceables.get(dimension); 
+			this.modInstalledReplaceables.put(dimension, HashMultimap.<Block,Replaceable>create());
+			blocks = this.modInstalledReplaceables.get(dimension); 
 		}
 		blocks.put(block, replaceable);
 	}
@@ -137,10 +198,10 @@ public class WorldGeneration {
 	public Collection<Replaceable> getReplaceables(int world, Block block) {
 		List<Replaceable> rep = Lists.newArrayList();
 
-		if(sortedReplaceables.get(ANY_DIMENSION) != null) {
-			rep.addAll(sortedReplaceables.get(ANY_DIMENSION).get(block));
+		if(this.sortedReplaceables.get(ANY_DIMENSION) != null) {
+			rep.addAll(this.sortedReplaceables.get(ANY_DIMENSION).get(block));
 		}
-		Multimap<Block, Replaceable> worldReplace = sortedReplaceables.get(world);
+		Multimap<Block, Replaceable> worldReplace = this.sortedReplaceables.get(world);
 		if(worldReplace != null) {
 			rep.addAll(worldReplace.get(block));
 		}
@@ -149,10 +210,10 @@ public class WorldGeneration {
 		if(stack.getItem() != null) {
 			for(int id : OreDictionary.getOreIDs(stack)) {
 				String i = OreDictionary.getOreName(id);
-				if(oreDictionaries.get(ANY_DIMENSION) != null) {
-					rep.addAll(oreDictionaries.get(ANY_DIMENSION).get(i));
+				if(this.sortedOreDictionaries.get(ANY_DIMENSION) != null) {
+					rep.addAll(this.sortedOreDictionaries.get(ANY_DIMENSION).get(i));
 				}
-				Multimap<String, Replaceable> oreReps = oreDictionaries.get(world);
+				Multimap<String, Replaceable> oreReps = this.sortedOreDictionaries.get(world);
 				if(oreReps != null) {
 					rep.addAll(oreReps.get(i));
 				}
@@ -162,51 +223,40 @@ public class WorldGeneration {
 		return rep;
 	}
 	
-	public boolean hasReplacables() {
-		return !sortedReplaceables.isEmpty() || !oreDictionaries.isEmpty();
-	}
-
-	public Collection<ChunkPos> getLoadedPendingForWorld(World world) {
+	public Collection<ChunkPos> getQueuedForWorld(World world) {
 		return loadedPendingChunks.get(world.provider.getDimension());
-	}
-	
-	public Collection<ChunkPos> getUnloadedPendingForWorld(World world) {
-		return unloadedPendingChunks.get(world.provider.getDimension());
-	}
-	
-	public void addPendingForWorld(World world, Chunk chunk, boolean loaded) {
-		if(loaded) {
-			loadedPendingChunks.put(world.provider.getDimension(), chunk.getChunkCoordIntPair());
-		} else {
-			unloadedPendingChunks.put(world.provider.getDimension(), chunk.getChunkCoordIntPair());
-		}
-	}
-	
-	public void removePendingForWorld(World world, Chunk chunk, boolean loaded) {
-		if(loaded) {
-			loadedPendingChunks.remove(world.provider.getDimension(), chunk.getChunkCoordIntPair());
-		} else {
-			unloadedPendingChunks.remove(world.provider.getDimension(), chunk.getChunkCoordIntPair());
-		}
-		
 	}
 	
 	public boolean unqueueChunk(World world, Chunk chunk) {
 		if(loadedPendingChunks.containsEntry(world.provider.getDimension(), chunk.getChunkCoordIntPair())) {
 			loadedPendingChunks.remove(world.provider.getDimension(), chunk.getChunkCoordIntPair());
-			addPendingForWorld(world, chunk, false);
+			unloadedPendingChunks.put(world.provider.getDimension(), chunk.getChunkCoordIntPair());
 			return true;
 		}
 		return false;
 	}
 
-	public boolean requeueChunk(World world, Chunk chunk) {
+	public boolean queueChunk(World world, Chunk chunk) {
 		if(unloadedPendingChunks.containsEntry(world.provider.getDimension(), chunk.getChunkCoordIntPair())) {
 			unloadedPendingChunks.remove(world.provider.getDimension(), chunk.getChunkCoordIntPair());
-			addPendingForWorld(world, chunk, true);
+			loadedPendingChunks.put(world.provider.getDimension(), chunk.getChunkCoordIntPair());
 			return true;
 		}
 		return false;
+	}
+	
+	public void addToQueue(World world, Chunk chunk, boolean loaded) {
+		if(loaded)
+			loadedPendingChunks.put(world.provider.getDimension(), chunk.getChunkCoordIntPair());
+		else
+			unloadedPendingChunks.put(world.provider.getDimension(), chunk.getChunkCoordIntPair());
+	}
+	
+	public void removeFromQueue(World world, Chunk chunk, int state) {
+		if((state & 1) == 1)
+			loadedPendingChunks.remove(world.provider.getDimension(), chunk.getChunkCoordIntPair());
+		if((state & 2) == 2)
+			unloadedPendingChunks.remove(world.provider.getDimension(), chunk.getChunkCoordIntPair());
 	}
 	
 	public void clearQueuedChunks() {
@@ -214,90 +264,140 @@ public class WorldGeneration {
 		unloadedPendingChunks.clear();
 	}
 	
-	public int getTotalQueuedChunkCount(int dimension) {
-		return getLoadedQueuedChunkCount(dimension) + getUnloadedQueuedChunkCount(dimension);
+	public Collection<Integer> getWorldsWithQueues() {
+		return loadedPendingChunks.keySet();
 	}
 	
-	public int getLoadedQueuedChunkCount(int dimension) {
-		Collection<ChunkPos> pos = loadedPendingChunks.get(dimension);
-		if(pos != null)
-			return pos.size();
-		return 0;
-	}
-	
-	public int getUnloadedQueuedChunkCount(int dimension) {
-		Collection<ChunkPos> pos = unloadedPendingChunks.get(dimension);
-		if(pos != null)
-			return pos.size();
-		return 0;
+	public Collection<Integer> getWorldsWithUnqueses() {
+		return unloadedPendingChunks.keySet();
 	}
 	
 	public boolean isQueuedChunk(World world, Chunk chunk) {
-		return isLoadedQueuedChunk(world, chunk) || isUnloadedQueuedChunk(world, chunk);
+		return isQueuedChunk(world, chunk, 3);
 	}
 	
-	public boolean isLoadedQueuedChunk(World world, Chunk chunk) {
-		return loadedPendingChunks.containsEntry(world.provider.getDimension(), chunk.getChunkCoordIntPair());
+	public boolean isQueuedChunk(World world, Chunk chunk, int flag) {
+		boolean loaded = loadedPendingChunks.containsEntry(world.provider.getDimension(), chunk.getChunkCoordIntPair());
+		boolean unloaded = unloadedPendingChunks.containsEntry(world.provider.getDimension(), chunk.getChunkCoordIntPair());
+		return loaded && ((flag & 1) == 1)
+			|| unloaded && ((flag & 2) == 2);
 	}
 	
-	public boolean isUnloadedQueuedChunk(World world, Chunk chunk) {
-		return unloadedPendingChunks.containsEntry(world.provider.getDimension(), chunk.getChunkCoordIntPair());
-	}
-	
-	public class GenWorld implements IWorldGenerator {
+	public int getQueuedChunkCount(int dimension) {
+		int size = 0;
+		Collection<ChunkPos> pos = loadedPendingChunks.get(dimension);
+		if(pos != null)
+			size += pos.size();
 
-		@Override
-		public void generate(Random random, int chunkX, int chunkZ, World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider) {
-			loadedPendingChunks.put(world.provider.getDimension(), new ChunkPos(chunkX, chunkZ));
-		}
+		pos = unloadedPendingChunks.get(dimension);
+		if(pos != null)
+			size += pos.size();
+		
+		return size;
+	}
+
+	public boolean isWorldProcessable(World world) {
+		return worldHasReplaceables(world) || worldOreGenable(world);
 	}
 	
-	public boolean runProcessChunk(World world, ChunkPos chunkPos) {
+	public boolean isWorldProcessable(int dimension) {
+		return worldHasReplaceables(dimension) || worldOreGenable(dimension);
+	}
+	
+	public boolean worldOreGenable(World world) {
+		return worldOreGenable(world.provider.getDimension());
+	}
+	
+	private boolean worldOreGenable(int worldId) {
+		boolean hasOreGen = false;
+		if(this.enableOreGen) {
+			hasOreGen = generatableOres.containsKey(worldId) && !generatableOres.get(worldId).isEmpty()
+				|| generatableOres.containsKey(ANY_DIMENSION) && !generatableOres.get(ANY_DIMENSION).isEmpty();
+		}
+		return hasOreGen
+			&& ((oreGenWorlds.contains(worldId) && !this.oreGenBlacklist)
+			|| (!oreGenWorlds.contains(worldId) && this.oreGenBlacklist));
+	}
+	
+	public boolean worldHasReplaceables(World world) {
+		return worldHasReplaceables(world.provider.getDimension());
+	}
+	
+	private boolean worldHasReplaceables(int worldId) {
+		boolean hasReplaceables = false;
+		if(this.enableReplaceables) {
+			hasReplaceables = sortedReplaceables.containsKey(worldId) && !sortedReplaceables.get(worldId).isEmpty()
+				|| sortedReplaceables.containsKey(ANY_DIMENSION) && !sortedReplaceables.get(ANY_DIMENSION).isEmpty();
+			hasReplaceables = hasReplaceables
+				|| sortedOreDictionaries.containsKey(worldId) && !sortedOreDictionaries.get(worldId).isEmpty()
+				|| sortedOreDictionaries.containsKey(ANY_DIMENSION) && !sortedReplaceables.get(ANY_DIMENSION).isEmpty();
+		}
+		boolean contains = replaceableWorlds.contains(worldId);
+		
+		return hasReplaceables
+			&& ((contains && !this.replaceablesBlacklist)
+			|| (!contains && this.replaceablesBlacklist));
+	}
+	
+	public boolean processChunk(World world, ChunkPos chunkPos) {
+		boolean chunkModified = false;
+		
 		long worldSeed = world.getSeed();
 		Random fmlRandom = new Random(worldSeed);
 		long xSeed = fmlRandom.nextLong() >> 2 + 1l;
 		long zSeed = fmlRandom.nextLong() >> 2 + 1l;
 		long chunkSeed = (xSeed * chunkPos.chunkXPos + zSeed * chunkPos.chunkZPos) ^ worldSeed;
-		boolean chunkModified = false;
-
 		fmlRandom.setSeed(chunkSeed);
-			for(int y = world.getHeight() - 1; y >= 0; y--) {
-				for(int x = 0; x < 16; x++) {
-					for(int z = 0; z < 16; z++) {
-						int posX = chunkPos.chunkXPos * 16 + x;
-						int posZ = chunkPos.chunkZPos * 16 + z;
-						BlockPos pos = new BlockPos(posX, y, posZ);
-						if(this.replacementProcess(world, fmlRandom, pos) && !chunkModified) {
-							chunkModified = true;
-						}
+		
+		if(this.worldHasReplaceables(world)) {
+			chunkModified = processChunk(world, fmlRandom, chunkPos);
+		}
+		if(this.worldOreGenable(world)) {
+			chunkModified = generateOres(world, fmlRandom, chunkPos);
+		}
+		return chunkModified;
+	}
+	
+	private boolean processChunk(World world, Random random, ChunkPos chunkPos) {
+		boolean chunkModified = false;
+		for(int y = world.getHeight() - 1; y >= 0; y--) {
+			for(int x = 0; x < 16; x++) {
+				for(int z = 0; z < 16; z++) {
+					int posX = chunkPos.chunkXPos * 16 + x;
+					int posZ = chunkPos.chunkZPos * 16 + z;
+					BlockPos pos = new BlockPos(posX, y, posZ);
+					if(this.replacementProcess(world, random, pos) && !chunkModified) {
+						chunkModified = true;
 					}
 				}
 			}
+		}
+		
 		return chunkModified;
 	}
 	
 	private boolean replacementProcess(World world, Random fmlRandom, BlockPos pos) {
-		if(this.hasReplacables()) {
 			IBlockState blockState = world.getBlockState(pos);
 			int dimension = world.provider.getDimension();
 			if(!blockState.getBlock().equals(Blocks.AIR)) {
 				Collection<Replaceable> replaceables = getReplaceables(dimension, blockState.getBlock());
 				if(replaceables != null) {
 					for(Replaceable rep : replaceables) {
-						int min = rep.getPropertyAsInt("min");
-						int max = rep.getPropertyAsInt("max");
+						int min = rep.getInt("min");
+						int max = rep.getInt("max");
 						
 						if((min <= pos.getY() || min == -1) && (max >= pos.getY() || max == -1)) {
-							double random = (Double) rep.getProperty("random");
-							IBlockState replace = rep.getPropertyAsBlockState("replace");
-							if((fmlRandom.nextDouble() < random || random == 1.0)) {
-								if(rep.getPropertyAsBoolean("usingore")) {
-									setBlock(world, pos, blockState, replace, rep.getPropertyAsString("loot"));
+							double random = rep.getDouble("random");
+							IBlockState replace = rep.getBlockState("replace");
+							if((random == 1.0 || fmlRandom.nextDouble() < random)) {
+								WorldManager.logger.debug("Replacing %s at (%s %s %s)", blockState.getBlock().getLocalizedName(), pos.getX(), pos.getY(), pos.getZ());
+								if(rep.getBoolean("usingore")) {
+									setBlock(world, pos, replace, rep.getString("loot"), 4);
 									return true;
 								}
-								if(!rep.getPropertyAsBoolean("usingore")) {
+								if(!rep.getBoolean("usingore")) {
 									if(rep.isAdequateState("block", blockState)) {
-										setBlock(world, pos, blockState, replace, rep.getPropertyAsString("loot"));
+										setBlock(world, pos, replace, rep.getString("loot"), 4);
 										return true;
 									}
 								}
@@ -306,14 +406,13 @@ public class WorldGeneration {
 					}
 				}
 			}
-		}
 		return false;
 	}
 	
-	private void setBlock(World world, BlockPos pos, IBlockState old, IBlockState state, String loot) {
-		WorldManager.debug("Replacing %s at (%s %s %s)", old.getBlock().getLocalizedName(), pos.getX(), pos.getY(), pos.getZ());
+	private void setBlock(World world, BlockPos pos, IBlockState state, String loot, int flags) {
+		IBlockState replace = (state == null ? Blocks.AIR.getDefaultState() : state);
+		world.setBlockState(pos, replace, flags);
 		if(state != null) {
-			world.setBlockState(pos, state, 2);
 			if(state.getBlock().hasTileEntity(state)) {
 				TileEntity tile = world.getTileEntity(pos);
 				if(tile != null && tile instanceof ILootContainer) {
@@ -328,8 +427,42 @@ public class WorldGeneration {
 					}
 				}
 			}
-		} else {
-			world.setBlockState(pos, Blocks.AIR.getDefaultState(), 2);
 		}
 	}
+
+	private boolean generateOres(World w, Random rand, ChunkPos pos) {
+		boolean chunkModified = false;
+		List<OreGenInfo> genable = Lists.newArrayList(generatableOres.get(w.provider.getDimension()));
+		genable.addAll(generatableOres.get(ANY_DIMENSION));
+		for(OreGenInfo info : genable) {
+			IBlockState state = info.getBlockState("ore");
+			int min = info.getInt("min");
+			int max = info.getInt("max");
+			int minSize = info.getInt("minSize");
+			int maxSize = info.getInt("maxSize");
+			int chance = info.getInt("chance");
+
+			WorldGenVanillaMinable minable = new WorldGenVanillaMinable(state, minSize, maxSize, 4, replaceable -> info.isAdequateState("replace", replaceable));
+			
+			for(int i = 0; i < chance; i++) {
+				double xRand = pos.chunkXPos * 16 + rand.nextInt(16);
+				double yRand = rand.nextInt(max - min) + min;
+				double zRand = pos.chunkZPos * 16 + rand.nextInt(16);
+				if(minable.generate(w, rand, new BlockPos(xRand, yRand, zRand))) {
+					chunkModified = true;
+				}
+			}
+		}
+		return chunkModified;
+	}
+
+	public class GenWorld implements IWorldGenerator {
+
+		@Override
+		public void generate(Random random, int chunkX, int chunkZ, World world, IChunkGenerator chunkGenerator, IChunkProvider chunkProvider) {
+			if(isWorldProcessable(world))
+				loadedPendingChunks.put(world.provider.getDimension(), new ChunkPos(chunkX, chunkZ));
+		}
+	}
+	
 }

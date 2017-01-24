@@ -7,6 +7,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import jplee.worldmanager.WorldManager;
+import jplee.worldmanager.config.GenConfig;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -20,13 +21,19 @@ public class EntityManager {
 	private Map<EntityPlayer,Boolean> startedPlayers;
 	private List<ItemStack> startingItems;
 	
+	private boolean startingInventory;
+	
 	private EntityManager() {
 		 startedPlayers = Maps.newHashMap();
+		 
+		 startingInventory = false;
 	}
 	
-	public void loadStartingItems() {
-		 String[] startInv = WorldManager.getStartInv();
+	public void loadStartingItems(GenConfig config) {
+		 String[] startInv = config.getStartingInventory();
 		startingItems = Lists.newArrayListWithCapacity(startInv.length);
+		
+		this.startingInventory = config.isStartInvEnabled();
 		
 		int count = 0;
 		for(String item : startInv) {
@@ -35,22 +42,26 @@ public class EntityManager {
 					startingItems.add(parsItem(item));
 					count++;
 				} catch (NBTException e) {
-					WorldManager.error("NBT tags were incorrect writen for item %s", item);
+					WorldManager.logger.error("NBT tags were incorrect writen for item %s", item);
 				}
 				if(count >= 18) {
-					WorldManager.warning("There was more that 18 items listed for starting inventory", new Object[0]);
+					WorldManager.logger.warning("There was more that 18 items listed for starting inventory", new Object[0]);
 					break;
 				}
 			}
 		}
 	}
 	
+	public boolean startingInventory() {
+		return this.startingInventory && !startingItems.isEmpty();
+	}
+	
 	private ItemStack parsItem(String item) throws NBTException {
-		String[] parts = item.trim().split(" ", 3);
+		String[] parts = item.trim().split(" +", 3);
 		
 		int amount = 1;
 		if(parts.length >= 2) {
-			WorldManager.info(parts[1], new Object[0]);
+			WorldManager.logger.info(parts[1], new Object[0]);
 			amount = Integer.parseInt(parts[1]);
 		}
 		

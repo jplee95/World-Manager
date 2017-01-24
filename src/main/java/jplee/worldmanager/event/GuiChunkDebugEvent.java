@@ -27,12 +27,13 @@ public class GuiChunkDebugEvent extends Gui {
 		ScaledResolution resolution = event.getResolution();
 		int scaledHeight = resolution.getScaledHeight();
 
-		String[] debug = debugInfo.split("\\|");
+		String[] debug = debugInfo.split("\n");
 		
 		if(WorldManager.isDebugShowing()) {
-			int start = scaledHeight / 2 - debug.length * 5;
+			int start = scaledHeight / 2 - 5 * debug.length;
 			int i = 0;
 			for(String str : debug) {
+				drawRect(0, start + i * 10 - 1, 4 + fontRenderer.getStringWidth(str), start + i * 10 + fontRenderer.FONT_HEIGHT, 0x77444444);
 				drawString(fontRenderer, str, 2, start + i * 10, 0xFFFFFF);
 				i++;
 			}
@@ -41,7 +42,16 @@ public class GuiChunkDebugEvent extends Gui {
 		if(Minecraft.getSystemTime() >= this.debugUpdateTime + 1000L) {
 			WorldGeneration wg = WorldGeneration.instance;
 			int dim = Minecraft.getMinecraft().thePlayer.dimension;
-			debugInfo = "=== World Manager ===|Dimension: " + dim + "|Chunks Queued: " + wg.getLoadedQueuedChunkCount(dim);
+			boolean workable = WorldGeneration.instance.isWorldProcessable(dim);
+			debugInfo = "=== World Manager ===\nCurrent:\n  " + dim + " > " + (workable ? wg.getQueuedChunkCount(dim) : "No Gen") + "\n";
+			if(wg.getWorldsWithQueues().size() > 1)
+				debugInfo += "\nDimensions";
+			for(int dimension : wg.getWorldsWithQueues()) {
+				if(dim != dimension) {
+					workable = WorldGeneration.instance.isWorldProcessable(dimension);
+					debugInfo += "\n" + dimension + " > " + (workable ? wg.getQueuedChunkCount(dimension) : "No Gen");
+				}
+			}
 			this.debugUpdateTime += 1000L;
 		}
 	}

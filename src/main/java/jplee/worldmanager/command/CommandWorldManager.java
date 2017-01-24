@@ -54,7 +54,7 @@ public class CommandWorldManager extends CommandBase {
 				} else {
 					int chunkX = Math.floorDiv(blockPos.getX(), 16);
 					int chunkZ = Math.floorDiv(blockPos.getZ(), 16);
-					WorldGeneration.instance.runProcessChunk(world, new ChunkPos(chunkX, chunkZ));
+					WorldGeneration.instance.processChunk(world, new ChunkPos(chunkX, chunkZ));
 					notifyCommandListener(sender, this, "commands.wm.processchunk.complete", new Object[0]);
 				}
 			} else if(args[0].equals("reloadconfig") && args.length == 1) {

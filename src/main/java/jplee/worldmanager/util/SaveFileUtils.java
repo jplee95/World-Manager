@@ -14,7 +14,6 @@ import net.minecraft.nbt.CompressedStreamTools;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
-import net.minecraft.world.storage.ISaveFormat;
 import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.ModContainer;
 import net.minecraftforge.fml.common.ZipperUtil;
@@ -53,26 +52,23 @@ public class SaveFileUtils {
 					if(tag instanceof NBTTagCompound) {
 						NBTTagCompound compound = (NBTTagCompound) tag;
 						NBTTagList list = null;
-						if((list = compound.getTagList("dummied", 10)) != null) {
-							if(!list.hasNoTags()) {
-								compound.setTag("dummied", new NBTTagList());
-							}
-						}
-						list = null;
-						if((list = compound.getTagList("ids", 10)) != null) {
-							if(!list.hasNoTags()) {
-								NBTTagList newList = new NBTTagList();
-								for(int i = 0; i < list.tagCount(); i++) {
-									NBTTagCompound comp = list.getCompoundTagAt(i);
-									String itemId = null;
-									if((itemId = comp.getString("K")) != null) {
-										if(itemId.startsWith("minecraft") || modListIds.contains(itemId.split(":", 1)[0])) {
-											newList.appendTag(comp);
-										}
+//						list = compound.getTagList("dummied", 10);
+//						if(!list.hasNoTags()) {
+//							compound.setTag("dummied", new NBTTagList());
+//						}
+						list = compound.getTagList("ids", 10);
+						if(!list.hasNoTags()) {
+							NBTTagList newList = new NBTTagList();
+							for(int i = 0; i < list.tagCount(); i++) {
+								NBTTagCompound comp = list.getCompoundTagAt(i);
+								String itemId = null;
+								if((itemId = comp.getString("K")) != null) {
+									if(itemId.startsWith("minecraft") || modListIds.contains(itemId.split(":", 1)[0])) {
+										newList.appendTag(comp);
 									}
 								}
-								compound.setTag("ids", newList);
 							}
+							compound.setTag("ids", newList);
 						}
 					}
 				}
