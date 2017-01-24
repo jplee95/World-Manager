@@ -3,6 +3,7 @@ package jplee.worldmanager.asm;
 import java.io.File;
 import java.util.Map;
 
+import jplee.jlib.util.asm.CodeDefinition;
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
 
 @IFMLLoadingPlugin.Name("World Manager Plugin")

@@ -2,6 +2,7 @@ package jplee.worldmanager.asm;
 
 import java.util.List;
 
+import jplee.jlib.util.asm.CodeDefinition;
 import jplee.worldmanager.gen.WorldGeneration;
 import jplee.worldmanager.gui.GuiWorldOptions;
 import net.minecraft.block.state.IBlockState;

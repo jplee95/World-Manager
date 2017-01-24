@@ -2,8 +2,6 @@ package jplee.worldmanager;
 
 import java.io.IOException;
 
-import jplee.jlib.server.network.MessageHandler.MessageType;
-import jplee.jlib.server.network.PacketHandler;
 import jplee.jlib.util.Log;
 
 import jplee.worldmanager.command.CommandWorldManager;
@@ -13,7 +11,6 @@ import jplee.worldmanager.event.GuiChunkDebugEvent;
 import jplee.worldmanager.event.WorldEventManager;
 import jplee.worldmanager.gen.WorldGeneration;
 import jplee.worldmanager.util.SaveFileUtils;
-import jplee.worldmanager.util.message.ChunkUpdateMessage;
 import net.minecraft.server.MinecraftServer;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
@@ -42,11 +39,6 @@ public class WorldManager {
 	
 	public static final Log logger = new Log();
 	private static GenConfig config;
-	
-	public static final PacketHandler packet = new PacketHandler(MODID);
-	static {
-		packet.registerPacket(ChunkUpdateMessage.class, new ChunkUpdateMessage.Handler(), MessageType.CLIENT);
-	}
 	
 	private static boolean showDebugInfo = false;
 	
