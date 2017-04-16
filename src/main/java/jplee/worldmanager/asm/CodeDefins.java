@@ -3,8 +3,8 @@ package jplee.worldmanager.asm;
 import java.util.List;
 
 import jplee.jlib.util.asm.CodeDefinition;
-import jplee.worldmanager.gen.WorldGeneration;
 import jplee.worldmanager.gui.GuiWorldOptions;
+import jplee.worldmanager.manager.GenerationManager;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
@@ -31,7 +31,7 @@ public final class CodeDefins {
 	}
 	
 	public static IBlockState getReplacement(World world, Chunk chunk, IBlockState state) {
-		WorldGeneration.instance.getQueuedForWorld(world);
+		GenerationManager.instance.getQueuedForWorld(world);
 		
 		return Blocks.AIR.getDefaultState();
 	}

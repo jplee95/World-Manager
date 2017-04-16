@@ -2,14 +2,13 @@ package jplee.worldmanager.util;
 
 import java.util.Map;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import com.google.common.collect.ImmutableMap;
 
 import jplee.jlib.util.InternalDataStructure;
 import jplee.jlib.util.Property;
 import jplee.worldmanager.WorldManager;
-import jplee.worldmanager.gen.WorldGeneration;
+import jplee.worldmanager.manager.ManagerUtil;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockStone;
 import net.minecraft.block.state.IBlockState;
@@ -17,10 +16,6 @@ import net.minecraft.init.Blocks;
 
 
 public class OreGenInfo extends InternalDataStructure<Object> {
-
-	public static final Pattern lineFormat = Pattern.compile("^((?:\\w+:)?\\w+(?:\\[(?:(?:\\w+=[\\w*]+|\\*?),?)*\\])?)\\|?((?:(?:\\w+=[\\w:/\\[\\],=.]+\\|?)+))?$");
-	public static final Pattern blockPattern = Pattern.compile("((?:\\w+:)?\\w+)(?:\\[((?:(?:\\w+=[\\w*]+|\\*?),?)*)\\])?");
-	public static final Pattern propPattern = Pattern.compile("(\\w+)=((?:(?:(?:\\w+:)?\\w+(?:\\[(?:(?:\\w+=(?:\\w+|\\*)|\\*),?)*\\])?|(?:\\+|-)?\\d*\\.\\d+|[\\w]+),?)+)");
 
 	private static final String stringKeys = "type";
 	private static final String stringListKeys = "biome";
@@ -33,7 +28,7 @@ public class OreGenInfo extends InternalDataStructure<Object> {
 	private static final Map<String,Object> defaultValues = ImmutableMap.<String,Object>builder()
 		.put("replace", getBlockStateWrapper(Blocks.STONE.getDefaultState()
 			.withProperty(BlockStone.VARIANT, BlockStone.EnumType.STONE), true))
-		.put("dimension", WorldGeneration.ANY_DIMENSION)
+		.put("dimension", ManagerUtil.ANY_DIMENSION)
 		.put("type", "standard")
 		.put("min", 0)
 		.put("chance", 2)
@@ -60,7 +55,7 @@ public class OreGenInfo extends InternalDataStructure<Object> {
 	}
 	
 	protected void setBlockState(String key, String part, boolean wildCard) {
-		Matcher match = blockPattern.matcher(part);
+		Matcher match = MatchPatterns.blockPattern.matcher(part);
 		if(match.matches()) {
 			this.set(key, new BlockStateWrapper(match.group(1), match.group(2), wildCard));
 		} else {
@@ -73,7 +68,7 @@ public class OreGenInfo extends InternalDataStructure<Object> {
 	}
 
 	private static BlockStateWrapper getBlockStateWrapper(IBlockState state, boolean wildCard) {
-		Matcher match = blockPattern.matcher(state.toString());
+		Matcher match = MatchPatterns.blockPattern.matcher(state.toString());
 		if(match.matches()) {
 			return new BlockStateWrapper(match.group(1), match.group(2), wildCard);
 		} else {
@@ -113,11 +108,11 @@ public class OreGenInfo extends InternalDataStructure<Object> {
 			return null;
 		}
 		
-		Matcher match = lineFormat.matcher(string);
+		Matcher match = MatchPatterns.lineFormat.matcher(string);
 		if(match.matches()) {
 			info.setBlockState("ore", match.group(1), false);
 			if(match.group(2) != null) {
-				Matcher propMatch = propPattern.matcher(match.group(2));
+				Matcher propMatch = MatchPatterns.propPattern.matcher(match.group(2));
 				while(propMatch.find()) {
 					String prop = propMatch.group(1);
 					String val = propMatch.group(2);

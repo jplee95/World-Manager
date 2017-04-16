@@ -1,15 +1,14 @@
 package jplee.jlib.util;
 
+import java.util.HashMap;
 import java.util.Map;
-
-import com.google.common.collect.Maps;
 
 public class InternalDataStructure<T extends Object> {
 	
 	protected final Map<String,Property<T>> data;
 	
 	protected InternalDataStructure() {
-		this.data = Maps.newHashMap();
+		this.data = new HashMap<>();
 	}
 	
 	public Object get(String key) {
@@ -19,27 +18,65 @@ public class InternalDataStructure<T extends Object> {
 	}
 	
 	public int getInt(String key) {
-		return (Integer) get(key);
+		Object obj = get(key);
+		if(obj instanceof Integer) {
+			return (Integer) obj;
+		}
+		if(obj.getClass().equals(int.class)) {
+			return (int) obj;
+		}
+		return Integer.MIN_VALUE;
 	}
 	
 	public float getFloat(String key) {
-		return (Float) get(key);
+		Object obj = get(key);
+		if(obj instanceof Float) {
+			return (Float) obj;
+		}
+		if(obj.getClass().equals(float.class)) {
+			return (float) obj;
+		}
+		return Float.MIN_VALUE;
 	}
 
 	public double getDouble(String key) {
-		return (Double) get(key);
+		Object obj = get(key);
+		if(obj instanceof Double) {
+			return (Double) obj;
+		}
+		if(obj.getClass().equals(double.class)) {
+			return (double) obj;
+		}
+		return Double.MIN_VALUE;
 	}
 	
 	public long getLong(String key) {
-		return (Long) get(key);
+		Object obj = get(key);
+		if(obj instanceof Long) {
+			return (Long) obj;
+		}
+		if(obj.getClass().equals(long.class)) {
+			return (long) obj;
+		}
+		return Long.MIN_VALUE;
 	}
 	
 	public boolean getBoolean(String key) {
-		return (Boolean) get(key);
+		Object obj = get(key);
+		if(obj instanceof Boolean) {
+			return (Boolean) obj;
+		}
+		if(obj.getClass().equals(boolean.class)) {
+			return (boolean) obj;
+		}
+		return Boolean.FALSE;
 	}
 	
 	public String getString(String key) {
-		return (String) get(key);
+		String str = (String)get(key);
+		if(str == null)
+			return "";
+		return str;
 	}
 	
 	public boolean hasData(String key) {

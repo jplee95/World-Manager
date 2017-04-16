@@ -112,7 +112,7 @@ public class Log {
 	}
 
 	public void attachLogger(Logger logger) {
-		if(logger == null)
+		if(this.logger == null)
 			this.logger = logger;
 	}
 	

@@ -12,6 +12,7 @@ import net.minecraft.world.World;
 import net.minecraft.world.gen.feature.WorldGenerator;
 
 
+@SuppressWarnings("unused")
 public class WorldGenScateredMinable extends WorldGenerator {
 
 	private final IBlockState oreBlock;
@@ -44,7 +45,6 @@ public class WorldGenScateredMinable extends WorldGenerator {
 	
 	@Override
 	public boolean generate(World worldIn, Random rand, BlockPos position) {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
