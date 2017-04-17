@@ -1,4 +1,4 @@
-package jplee.worldmanager.gen;
+package jplee.worldmanager.manager;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -27,6 +27,7 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
+import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.IChunkGenerator;
 import net.minecraft.world.chunk.IChunkProvider;
@@ -35,11 +36,9 @@ import net.minecraftforge.fml.common.IWorldGenerator;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.oredict.OreDictionary;
 
-public class WorldGeneration {
+public class GenerationManager {
 	
-	public static final WorldGeneration instance = new WorldGeneration();
-	
-	public static final int ANY_DIMENSION = -93578231;
+	public static final GenerationManager instance = new GenerationManager();
 	
 	private Multimap<Integer,ChunkPos> loadedPendingChunks;
 	private Multimap<Integer,ChunkPos> unloadedPendingChunks;
@@ -62,7 +61,7 @@ public class WorldGeneration {
 	private boolean enableReplaceables;
 	private boolean enableOreGen;
 	
-	private WorldGeneration() {
+	private GenerationManager() {
 		this.loadedPendingChunks = HashMultimap.create();
 		this.unloadedPendingChunks = HashMultimap.create();
 		this.modInstalledReplaceables = Maps.newHashMap();
@@ -80,98 +79,105 @@ public class WorldGeneration {
 	}
 	
 	public void loadWorldGenerationInfo(GenConfig config) {
-		Map<Integer,Multimap<Block,Replaceable>> replaceables = Maps.newHashMap();
-		Map<Integer,Multimap<String,Replaceable>> oreReps = Maps.newHashMap();
-
+		if(!sortedOreDictionaries.isEmpty())
+			sortedOreDictionaries.clear();
+		if(!sortedReplaceables.isEmpty())
+			sortedReplaceables.clear();
+		if(!generatableOres.isEmpty())
+			generatableOres.clear();
+		if(!replaceableWorlds.isEmpty())
+			replaceableWorlds.clear();
+		if(!oreGenWorlds.isEmpty())
+			oreGenWorlds.clear();
+		
 		this.replaceablesBlacklist = config.isReplaceablesBlacklist();
 		this.oreGenBlacklist = config.isOreGenBlacklist();
 
-		this.enableReplaceables = config.isReplaceablesEnabled();
-		this.enableOreGen = config.isOreGenEnabled();
+		Map<Integer,Multimap<Block,Replaceable>> replaceables = Maps.newHashMap();
+		Map<Integer,Multimap<String,Replaceable>> oreReps = Maps.newHashMap();
 		
-		for(int i = 0; i < config.getReplaceablesDimensionsList().length; i++)
-			this.replaceableWorlds.add(config.getReplaceablesDimensionsList()[i]);
-
-		Arrays.asList(config.getReplaceables()).stream()
-		.filter(line -> !line.startsWith("#") && !line.isEmpty())
-		.forEach(line -> {
-			Replaceable rep = Replaceable.build(line);
-			try {
-				int dimension = rep.hasData("dimension") ? rep.getInt("dimension") : ANY_DIMENSION;
-				if(this.replaceableWorlds.contains(dimension) && !this.replaceablesBlacklist ||
-					!this.replaceableWorlds.contains(dimension) && this.replaceablesBlacklist ||
-					dimension == ANY_DIMENSION) {
-					if(rep.getBoolean("usingore")) {
-						String oreDict = rep.getString("oredict");
-						add(oreReps, dimension, oreDict, rep);
-					} else {
-						Block block = rep.getBlockFromBlockState("block");
-						add(replaceables, dimension, block, rep);
+		this.enableOreGen = config.isOreGenEnabled();
+		if(enableOreGen) {
+			for(int i = 0; i < config.getReplaceablesDimensionsList().length; i++)
+				this.oreGenWorlds.add(config.getReplaceablesDimensionsList()[i]);
+	
+			Arrays.asList(config.getOreGeneration()).stream()
+			.filter(line -> !line.startsWith("#") && !line.isEmpty())
+			.forEach(line -> {
+				OreGenInfo info = OreGenInfo.build(line);
+				int dimension = info.hasData("dimension") ? info.getInt("dimension") : ManagerUtil.ANY_DIMENSION;
+				if(this.oreGenWorlds.contains(dimension) && !this.oreGenBlacklist ||
+					!this.oreGenWorlds.contains(dimension) && this.oreGenBlacklist ||
+					dimension == ManagerUtil.ANY_DIMENSION) {
+					if(info.getBoolean("override")) {
+						String rep = info.getBlockState("ore").toString();
+						Replaceable replaceable = Replaceable.build(rep, false);
+						ManagerUtil.addToMultimap(replaceables, dimension, info.getBlockFromBlockState("ore"), replaceable);
 					}
 				}
-			} catch(Exception e) {
-				WorldManager.logger.error("Unable to read %s", rep == null ? "" :rep.toString());
-				e.printStackTrace();
-			}
-		});
-
-		this.generatableOres.clear();
-		for(int i = 0; i < config.getReplaceablesDimensionsList().length; i++)
-			this.oreGenWorlds.add(config.getReplaceablesDimensionsList()[i]);
-
-		Arrays.asList(config.getOreGeneration()).stream()
-		.filter(line -> !line.startsWith("#") && !line.isEmpty())
-		.forEach(line -> {
-			OreGenInfo info = OreGenInfo.build(line);
-			int dimension = info.hasData("dimension") ? info.getInt("dimension") : ANY_DIMENSION;
-			if(this.oreGenWorlds.contains(dimension) && !this.oreGenBlacklist ||
-				!this.oreGenWorlds.contains(dimension) && this.oreGenBlacklist ||
-				dimension == ANY_DIMENSION) {
-				if(info.getBoolean("override")) {
-					String rep = info.getBlockState("ore").toString();
-					Replaceable replaceable = Replaceable.build(rep, false);
-					add(replaceables, dimension, info.getBlockFromBlockState("ore"), replaceable);
-				}
-			}
-			this.generatableOres.put(dimension, info);
-		});
+				this.generatableOres.put(dimension, info);
+			});
 		
-		this.sortedOreDictionaries.clear();
-		for(int dimension : oreReps.keySet()) {
-			for(String ore : oreReps.get(dimension).keys()) {
-				List<Replaceable> list = Lists.newArrayList(oreReps.get(dimension).get(ore));
-				list.sort(replaceableComparable);
-				Multimap<String, Replaceable> oreDict = this.sortedOreDictionaries.get(dimension);
-				if(oreDict == null) {
-					this.sortedOreDictionaries.put(dimension, HashMultimap.<String,Replaceable>create());
-					oreDict = this.sortedOreDictionaries.get(dimension); 
-				}
-				oreDict.putAll(ore, list);
-			}
 		}
 		
-		this.sortedReplaceables.clear();
-		for(int dimension : replaceables.keySet()) {
-			for(Block block : replaceables.get(dimension).keys()) {
-				List<Replaceable> list = Lists.newArrayList(replaceables.get(dimension).get(block));
-				list.sort(replaceableComparable);
-				Multimap<Block, Replaceable> blocks = this.sortedReplaceables.get(dimension);
-				if(blocks == null) {
-					this.sortedReplaceables.put(dimension, HashMultimap.<Block,Replaceable>create());
-					blocks = this.sortedReplaceables.get(dimension); 
+		this.enableReplaceables = config.isReplaceablesEnabled();
+		if(enableReplaceables) {
+			for(int i = 0; i < config.getReplaceablesDimensionsList().length; i++)
+				this.replaceableWorlds.add(config.getReplaceablesDimensionsList()[i]);
+
+			Arrays.asList(config.getReplaceables()).stream()
+			.filter(line -> !line.startsWith("#") && !line.isEmpty())
+			.forEach(line -> {
+				Replaceable rep = Replaceable.build(line);
+				try {
+					int dimension = rep.hasData("dimension") ? rep.getInt("dimension") : ManagerUtil.ANY_DIMENSION;
+					if(this.replaceableWorlds.contains(dimension) && !this.replaceablesBlacklist ||
+						!this.replaceableWorlds.contains(dimension) && this.replaceablesBlacklist ||
+						dimension == ManagerUtil.ANY_DIMENSION) {
+						if(rep.getBoolean("usingore")) {
+							String oreDict = rep.getString("oredict");
+							ManagerUtil.addToMultimap(oreReps, dimension, oreDict, rep);
+						} else {
+							Block block = rep.getBlockFromBlockState("block");
+							ManagerUtil.addToMultimap(replaceables, dimension, block, rep);
+						}
+					}
+				} catch(Exception e) {
+					WorldManager.logger.error("Unable to read %s", rep == null ? "" :rep.toString());
+					e.printStackTrace();
 				}
-				blocks.putAll(block, list);
+			});
+		}
+
+		if(oreReps.size() > 0) {
+			for(int dimension : oreReps.keySet()) {
+				for(String ore : oreReps.get(dimension).keys()) {
+					List<Replaceable> list = Lists.newArrayList(oreReps.get(dimension).get(ore));
+					list.sort(replaceableComparable);
+					Multimap<String, Replaceable> oreDict = this.sortedOreDictionaries.get(dimension);
+					if(oreDict == null) {
+						this.sortedOreDictionaries.put(dimension, HashMultimap.<String,Replaceable>create());
+						oreDict = this.sortedOreDictionaries.get(dimension); 
+					}
+					oreDict.putAll(ore, list);
+				}
 			}
 		}
-	}
-	
-	private static <M extends Object, K extends Object, J extends Object> boolean add(Map<M,Multimap<K,J>> map, M key1, K key2, J value) {
-		Multimap<K,J> innerMap = null;
-		if((innerMap = map.get(key1)) == null) {
-			map.put(key1, HashMultimap.<K,J>create());
-			innerMap = map.get(key1);
+			
+		if(replaceables.size() > 0) {
+			for(int dimension : replaceables.keySet()) {
+				for(Block block : replaceables.get(dimension).keys()) {
+					List<Replaceable> list = Lists.newArrayList(replaceables.get(dimension).get(block));
+					list.sort(replaceableComparable);
+					Multimap<Block, Replaceable> blocks = this.sortedReplaceables.get(dimension);
+					if(blocks == null) {
+						this.sortedReplaceables.put(dimension, HashMultimap.<Block,Replaceable>create());
+						blocks = this.sortedReplaceables.get(dimension); 
+					}
+					blocks.putAll(block, list);
+				}
+			}
 		}
-		return innerMap.put(key2, value);
 	}
 	
 	private static Comparator<Replaceable> replaceableComparable = new Comparator<Replaceable>() {
@@ -197,8 +203,8 @@ public class WorldGeneration {
 	public Collection<Replaceable> getReplaceables(int world, Block block) {
 		List<Replaceable> rep = Lists.newArrayList();
 
-		if(this.sortedReplaceables.get(ANY_DIMENSION) != null) {
-			rep.addAll(this.sortedReplaceables.get(ANY_DIMENSION).get(block));
+		if(this.sortedReplaceables.get(ManagerUtil.ANY_DIMENSION) != null) {
+			rep.addAll(this.sortedReplaceables.get(ManagerUtil.ANY_DIMENSION).get(block));
 		}
 		Multimap<Block, Replaceable> worldReplace = this.sortedReplaceables.get(world);
 		if(worldReplace != null) {
@@ -209,8 +215,8 @@ public class WorldGeneration {
 		if(stack.getItem() != null) {
 			for(int id : OreDictionary.getOreIDs(stack)) {
 				String i = OreDictionary.getOreName(id);
-				if(this.sortedOreDictionaries.get(ANY_DIMENSION) != null) {
-					rep.addAll(this.sortedOreDictionaries.get(ANY_DIMENSION).get(i));
+				if(this.sortedOreDictionaries.get(ManagerUtil.ANY_DIMENSION) != null) {
+					rep.addAll(this.sortedOreDictionaries.get(ManagerUtil.ANY_DIMENSION).get(i));
 				}
 				Multimap<String, Replaceable> oreReps = this.sortedOreDictionaries.get(world);
 				if(oreReps != null) {
@@ -311,7 +317,7 @@ public class WorldGeneration {
 		boolean hasOreGen = false;
 		if(this.enableOreGen) {
 			hasOreGen = generatableOres.containsKey(worldId) && !generatableOres.get(worldId).isEmpty()
-				|| generatableOres.containsKey(ANY_DIMENSION) && !generatableOres.get(ANY_DIMENSION).isEmpty();
+				|| generatableOres.containsKey(ManagerUtil.ANY_DIMENSION) && !generatableOres.get(ManagerUtil.ANY_DIMENSION).isEmpty();
 		}
 		return hasOreGen
 			&& ((oreGenWorlds.contains(worldId) && !this.oreGenBlacklist)
@@ -326,10 +332,10 @@ public class WorldGeneration {
 		boolean hasReplaceables = false;
 		if(this.enableReplaceables) {
 			hasReplaceables = sortedReplaceables.containsKey(worldId) && !sortedReplaceables.get(worldId).isEmpty()
-				|| sortedReplaceables.containsKey(ANY_DIMENSION) && !sortedReplaceables.get(ANY_DIMENSION).isEmpty();
+				|| sortedReplaceables.containsKey(ManagerUtil.ANY_DIMENSION) && !sortedReplaceables.get(ManagerUtil.ANY_DIMENSION).isEmpty();
 			hasReplaceables = hasReplaceables
 				|| sortedOreDictionaries.containsKey(worldId) && !sortedOreDictionaries.get(worldId).isEmpty()
-				|| sortedOreDictionaries.containsKey(ANY_DIMENSION) && !sortedReplaceables.get(ANY_DIMENSION).isEmpty();
+				|| sortedOreDictionaries.containsKey(ManagerUtil.ANY_DIMENSION) && !sortedReplaceables.get(ManagerUtil.ANY_DIMENSION).isEmpty();
 		}
 		boolean contains = replaceableWorlds.contains(worldId);
 		
@@ -375,31 +381,104 @@ public class WorldGeneration {
 		return chunkModified;
 	}
 	
+	public Replaceable getReplaceable(World world, BlockPos pos, IBlockState state, Random rand) {
+		int dimension = world.provider.getDimension();
+		Biome biome = world.getBiome(pos);
+		if(!state.getBlock().equals(Blocks.AIR)) {
+			Collection<Replaceable> replaces = getReplaceables(dimension, state.getBlock());
+			if(replaces != null) {
+				for(Replaceable rep : replaces) {
+					int min = rep.getInt("min");
+					if(min > pos.getY() && min != -1)
+						continue;
+					int max = rep.getInt("max");
+					if(max < pos.getY() && max != -1)
+						continue;
+					String[] biomes = (String[]) rep.get("biome");
+					boolean found = biomes.length == 0;
+					if(!found) {
+						for(String b : biomes) {
+							if(biome.getRegistryName().toString().equals(b)) {
+								found = true;
+								break;
+							}
+						}
+					}
+					if(!found)
+						continue;
+					double random = rep.getDouble("random");
+					if(random != 1.0 && rand.nextDouble() < random)
+						continue;
+					if(!rep.getBoolean("usingore") && !rep.isAdequateState("block", state))
+						continue;
+					
+					return rep;
+				}
+			}
+		}
+		return null;
+	}
+	
+	public void postReplace(World world, BlockPos pos, String loot, Random rand) {
+		IBlockState state = world.getBlockState(pos);
+		if(state != null) {
+			if(state.getBlock().hasTileEntity(state)) {
+				TileEntity tile = world.getTileEntity(pos);
+				if(tile != null && tile instanceof ILootContainer) {
+					NBTTagCompound compound = new NBTTagCompound();
+					if(loot != null) {
+						tile.writeToNBT(compound);
+						if(!compound.hasKey("LootTable")) {
+							compound.setString("LootTable", loot);
+						}
+						tile.readFromNBT(compound);
+						tile.markDirty();
+					}
+				}
+			}
+		}
+	}
+	
 	private boolean replacementProcess(World world, Random fmlRandom, BlockPos pos) {
-			IBlockState blockState = world.getBlockState(pos);
+			IBlockState state = world.getBlockState(pos);
+			Biome biome = world.getBiome(pos);
 			int dimension = world.provider.getDimension();
-			if(!blockState.getBlock().equals(Blocks.AIR)) {
-				Collection<Replaceable> replaceables = getReplaceables(dimension, blockState.getBlock());
-				if(replaceables != null) {
-					for(Replaceable rep : replaceables) {
+			if(!state.getBlock().equals(Blocks.AIR)) {
+				Collection<Replaceable> replaces = getReplaceables(dimension, state.getBlock());
+				if(replaces != null) {
+					for(Replaceable rep : replaces) {
 						int min = rep.getInt("min");
+						if(min > pos.getY() && min != -1)
+							continue;
 						int max = rep.getInt("max");
-						
-						if((min <= pos.getY() || min == -1) && (max >= pos.getY() || max == -1)) {
-							double random = rep.getDouble("random");
-							IBlockState replace = rep.getBlockState("replace");
-							if((random == 1.0 || fmlRandom.nextDouble() < random)) {
-								WorldManager.logger.debug("Replacing %s at (%s %s %s)", blockState.getBlock().getLocalizedName(), pos.getX(), pos.getY(), pos.getZ());
-								if(rep.getBoolean("usingore")) {
-									setBlock(world, pos, replace, rep.getString("loot"), 4);
-									return true;
-								}
-								if(!rep.getBoolean("usingore")) {
-									if(rep.isAdequateState("block", blockState)) {
-										setBlock(world, pos, replace, rep.getString("loot"), 4);
-										return true;
+						if(max < pos.getY() && max != -1)
+							continue;
+						String[] biomes = (String[]) rep.get("biome");
+						if(biomes != null) {
+							boolean found = biomes.length == 0;
+							if(!found) {
+								for(String b : biomes) {
+									if(biome.getRegistryName().toString().equals(b)) {
+										found = true;
+										break;
 									}
 								}
+							}
+							if(!found)
+								continue;
+						}
+						double random = rep.getDouble("random");
+						if(random != 1.0 && fmlRandom.nextDouble() < random)
+							continue;
+						IBlockState replace = rep.getBlockState("replace");
+						if(rep.getBoolean("usingore")) {
+							setBlock(world, pos, replace, rep.getString("loot"), 4);
+							return true;
+						}
+						if(!rep.getBoolean("usingore")) {
+							if(rep.isAdequateState("block", state)) {
+								setBlock(world, pos, replace, rep.getString("loot"), 4);
+								return true;
 							}
 						}
 					}
@@ -432,7 +511,7 @@ public class WorldGeneration {
 	private boolean generateOres(World w, Random rand, ChunkPos pos) {
 		boolean chunkModified = false;
 		List<OreGenInfo> genable = Lists.newArrayList(generatableOres.get(w.provider.getDimension()));
-		genable.addAll(generatableOres.get(ANY_DIMENSION));
+		genable.addAll(generatableOres.get(ManagerUtil.ANY_DIMENSION));
 		for(OreGenInfo info : genable) {
 			IBlockState state = info.getBlockState("ore");
 			int min = info.getInt("min");

@@ -13,31 +13,32 @@ import jplee.worldmanager.manager.ManagerUtil;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
+import net.minecraft.item.ItemStack;
 
-public class Replaceable extends InternalDataStructure<Object> {
 
-	private static final String stringKeys = "loot";
-	private static final String stringListKeys = "match|biomes";
-	private static final String intKeys = "min|max|dimension";
-	private static final String doubleKeys = "random";
-	private static final String blockStateKeys = "replace";
+public class BlockProperty extends InternalDataStructure<Object> {
+
+	private static final String stringKeys = "";
+	private static final String stringListKeys = "";
+	private static final String itemKeys = "drop";
+	private static final String intKeys = "dimension|strength";
+	private static final String doubleKeys = "hold";
+	private static final String boolKeys = "gravity|silktouch";
 	private static final String untrackedKeys = "block|oredict|usingore";
-	private static final String unImpKeys = "match|unimplemented";
-	private static final String keys = stringKeys + "|" + stringListKeys + "|" + intKeys + "|" + doubleKeys + "|" + blockStateKeys + "|" + untrackedKeys;
-	
+	private static final String unImpKeys = "strength|unimplemented";
+	private static final String keys = stringKeys + "|" + stringListKeys + "|" + itemKeys + "|" + intKeys + "|" + doubleKeys + "|" + boolKeys + "|" + untrackedKeys;
+
 	private static final Map<String,Object> defaultValues = ImmutableMap.<String,Object>builder()
-		.put("replace", getBlockStateWrapper(Blocks.AIR.getDefaultState(), false))
-		.put("dimension", ManagerUtil.ANY_DIMENSION)
-		.put("min", 0)
-		.put("max", 255)
-		.put("random", 1.0d)
-		.put("match", "")
-		.put("loot", "")
+		.put("hold", 0.0)
+		.put("gravity", false)
 		.put("oredict", "")
-		.put("biomes", new String[0])
 		.put("usingore", false)
+		.put("drop", new ItemStack(Blocks.AIR))
+		.put("silktouch", true)
+		.put("dimension", ManagerUtil.ANY_DIMENSION)
+		.put("strength", 0)
 		.build();
-	
+
 	public IBlockState getBlockState(String key) {
 		return ((BlockStateWrapper) this.get(key)).getBlockState();
 	}
@@ -63,7 +64,7 @@ public class Replaceable extends InternalDataStructure<Object> {
 		}
 	}
 	
-	private static BlockStateWrapper getBlockStateWrapper(IBlockState state, boolean wildCard) {
+	protected static BlockStateWrapper getBlockStateWrapper(IBlockState state, boolean wildCard) {
 		Matcher match = MatchPatterns.blockPattern.matcher(state.toString());
 		if(match.matches()) {
 			return new BlockStateWrapper(match.group(1), match.group(2), wildCard);
@@ -76,37 +77,34 @@ public class Replaceable extends InternalDataStructure<Object> {
 	protected void setBlockState(String key, IBlockState state, boolean wildCard) {
 		this.setBlockState(key, state.toString(), wildCard);
 	}
-	
+
 	protected void addOreDictionary(String oreDictionary) {
 		this.set("usingore", true);
 		this.set("oredict", oreDictionary);
 	}
 
 	@SafeVarargs
-	public static Replaceable build(String replaceable, boolean wildCard, Property<Object>...properties) {
-		Replaceable rep = new Replaceable();
+	public static BlockProperty build(String block, boolean wildCard, Property<Object>...properties) {
+		BlockProperty property = new BlockProperty();
 		
-		rep.setBlockState("block", replaceable, wildCard);
-		for(Property<Object> prop : properties) {
-			if(prop.key.matches(keys) && !rep.hasData(prop.key)) {
+		property.setBlockState("block", block, wildCard);
+		for(Property<Object> prop :properties) {
+			if(prop.key.matches(keys) && !property.hasData(prop.key)) {
 				if(prop.key.matches(unImpKeys)) {
 					WorldManager.logger.warning("Property %s for '%s' has not been implemented, skipping",
-						prop.key, replaceable);
+						prop.key, block);
 					continue;
 				}
-				rep.set(prop);
+				property.set(prop);
 			} else {
-				WorldManager.logger.error("Property %s was not recognized for %s, skipping", prop.key, replaceable);
+				WorldManager.logger.error("Property %s was not recognized for %s, skipping", prop.key, block);
 			}
 		}
-		
-		return rep;
+		return property;
 	}
 	
-	public static Replaceable build(String string) {
-		Replaceable replaceable = new Replaceable();
-		
-		string.replaceAll("\\s+", "");
+	public static BlockProperty build(String string) {
+		BlockProperty property = new BlockProperty();
 
 		if(string.endsWith("|")) {
 			WorldManager.logger.error("Formating for '%s' is incorrect", string);
@@ -116,42 +114,52 @@ public class Replaceable extends InternalDataStructure<Object> {
 		Matcher match = MatchPatterns.lineFormat.matcher(string);
 		if(match.matches()) {
 			if(match.group(1).startsWith("ore:")) {
-				replaceable.addOreDictionary(match.group(1).substring(4));
+				property.addOreDictionary(match.group(1).replaceAll("\\s+", "").substring(4));
 			} else {
-				replaceable.setBlockState("block", match.group(1), true);
+				property.setBlockState("block", match.group(1).replaceAll("\\s+", ""), true);
 			}
 			if(match.group(2) != null) {
-				Matcher propMatch = MatchPatterns.propPattern.matcher(match.group(2));
+				String value = match.group(2).substring(1);
+				Matcher propMatch = MatchPatterns.propPattern.matcher(value);
 				while(propMatch.find()) {
-					String prop = propMatch.group(1);
-					String val = propMatch.group(2);
+					String prop = propMatch.group(1).replaceAll("\\s+", "");
+					String prestr = propMatch.group(2);
+					String val = prestr.trim();
 					
 					try {
 						if(prop.matches(unImpKeys)) {
 							WorldManager.logger.warning("Property %s in '%s' has not been implemented, skipping",
-								match.group(1), string);
+								prop, string);
 							continue;
 						}
 						if(prop.matches(stringKeys)) {
-							replaceable.set(prop, val);
+							property.set(prop, val);
 							continue;
 						}
 						if(prop.matches(stringListKeys)) {
-							String[] vals = val.split(",");
+							String[] vals = val.replaceAll("\\s+", "").split(",");
 							Arrays.asList(vals).forEach(str -> str.trim());
-							replaceable.set(prop, vals);
+							property.set(prop, vals);
 							continue;
 						}
-						if(prop.matches(blockStateKeys)) {
-							replaceable.setBlockState(prop, val.replaceAll("\\[\\]", "\\*"), false);
+						if(prop.matches(itemKeys)) {
+							ItemStack stack = ItemUtils.parsItem(val);
+							property.set(prop, stack);
 							continue;
 						}
 						if(prop.matches(intKeys)) {
-							replaceable.set(prop, Integer.parseInt(val));
+							if(prop.equals("strength"))
+								property.set(prop, Math.max(0, Math.min(16, Integer.parseInt(val))));
+							else	
+								property.set(prop, Integer.parseInt(val));
 							continue;
 						}
 						if(prop.matches(doubleKeys)) {
-							replaceable.set(prop, Double.parseDouble(val));
+							property.set(prop, Double.parseDouble(val));
+							continue;
+						}
+						if(prop.matches(boolKeys)) {
+							property.set(prop, Boolean.parseBoolean(val));
 							continue;
 						}
 					} catch(Exception e) {
@@ -160,16 +168,13 @@ public class Replaceable extends InternalDataStructure<Object> {
 					WorldManager.logger.error("Property %s was not recognized in '%s', skipping", prop, string);
 				}
 			}
-		} else {
-			WorldManager.logger.error("Formating for '%s' is incorrect", string);
-			return null;
 		}
 		
-		replaceable.addMissing();
-		return replaceable;
+		property.addMissing();
+		return property;
 	}
 	
-	public Replaceable addMissing() {
+	public BlockProperty addMissing() {
 		for(String key : keys.split("\\|")) {
 			if(!this.hasData(key) && !key.matches(unImpKeys)) {
 				this.set(key, defaultValues.get(key));
@@ -177,7 +182,7 @@ public class Replaceable extends InternalDataStructure<Object> {
 		}
 		return this;
 	}
-
+	
 	@Override
 	public String toString() {
 		String str = "";
@@ -185,7 +190,7 @@ public class Replaceable extends InternalDataStructure<Object> {
 			if(this.getBoolean("usingore")) {
 				str = "ore:" + this.getString("oredict");
 			} else {
-				str = this.getBlockStateWrapper("block").toString();
+				str = String.valueOf(this.getBlockStateWrapper("block"));
 			}
 		else
 			str = "invalid";

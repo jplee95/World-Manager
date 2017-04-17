@@ -1,8 +1,15 @@
 commands.wm.usage=/wm <command> args...
+commands.wm.debug.usage=/wm debug
+commands.wm.getoredict.usage=/wm getoredict
+commands.wm.getstate.usage=/wm getstate
+commands.wm.processchunk.usage=/wm processchunk <x> <z>
+commands.wm.reloadconfig.usage=/wm reload
+commands.wm.getoredict.noitem=There is not item currently selected
+commands.wm.getstate.notblock=The item selected is not a block
 commands.wm.processchunk.outofworld=The coordinates that were put in were out of world bounds
 commands.wm.processchunk.complete=You have successfully processed this chunk
 commands.wm.reloadconfig.complete=Config has been reloaded
-commands.wm.getstates.notblock=The item selected is not a block
+commands.wm.help.header=--- Showing help page %s of %s (/wm help <page>) ---
 wm.selectworld.edit.worldoptions=World Options
 wm.selectworld.edit.worldoptions.title=World Options
 wm.selectworld.edit.worldoptions.cleanregistry=Clean World Registry

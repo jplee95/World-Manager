@@ -2,7 +2,6 @@ package jplee.worldmanager.util;
 
 import java.util.Map;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -17,15 +16,9 @@ import net.minecraft.util.ResourceLocation;
 /** Useful utility for wrapping a blockstate and testing for equivalent states */
 public class BlockStateWrapper {
 	
-	/** The pattern for states */
-	public static final Pattern statePattern = Pattern.compile("(\\w+)\\=([\\w*]+)");
-	private static final Pattern blockPattern = Pattern.compile("((?:\\w+:)?\\w+)(?:\\[((?:(?:\\w+=[\\w*]+|\\*?),?)*)\\])?");
-	
 	private Block block;
 	private IBlockState blockState;
 	private Map<IBlockState,Boolean> allowedStates;
-	@SuppressWarnings("unused")
-	private Map<String,Boolean> oreDictionaried;
 	private boolean wildCard;
 
 	private final String keyBlockString;
@@ -37,42 +30,51 @@ public class BlockStateWrapper {
 	 *  @param wildCard - allows wild carding of the blockstate
 	 *  */
 	public BlockStateWrapper(@Nonnull String block, @Nullable String states, boolean wildCard) {
-		this.wildCard = wildCard;
 		this.block = Block.REGISTRY.getObject(new ResourceLocation(block));
-		Matcher matchBlock = blockPattern.matcher(this.block.getDefaultState().toString());
-		keyBlockString = Block.REGISTRY.getNameForObject(this.block) + "[" + 
-			(states == null || states.isEmpty() ? (matchBlock.matches() ? matchBlock.group(2) : " ") : states) + "]";
-		Map<String,String> setStates = Maps.<String,String>newHashMap();
-		this.allowedStates = Maps.<IBlockState,Boolean>newHashMap();
-		Matcher matcher = statePattern.matcher(this.block.getDefaultState().toString());
-		if(states == null || states.isEmpty()) {
-			if(!wildCard) {
+		this.wildCard = wildCard;
+		allowedStates = Maps.newHashMap();
+		Map<String,String> setStates = Maps.newHashMap();
+		
+		boolean defaultState = states == null || states.isEmpty();
+		boolean matchAll = states != null && states == "*";
+		
+		String defaultStateString = "";
+		if(defaultState) {
+			Matcher match = MatchPatterns.blockPattern.matcher(this.block.getDefaultState().toString());
+			if(match.matches()) {
+				defaultStateString = match.group(2);
+				if(defaultStateString == null) {
+					defaultStateString = "";
+				}
+			}
+		}
+		keyBlockString = Block.REGISTRY.getNameForObject(this.block) + "[" + (defaultState ? defaultStateString : states) + "]";
+
+		Matcher matcher = MatchPatterns.statePattern.matcher(this.block.getDefaultState().toString());
+		if(defaultState) {
+			if(!wildCard)
 				this.blockState = this.block.getDefaultState();
-			}
-			while(matcher.find()) {
+			while(matcher.find())
 				setStates.put(matcher.group(1), matcher.group(2));
-			}
-		} else if(states.equals("*")) {
+		} else if(matchAll) {
 			if(!wildCard) {
 				WorldManager.logger.error("A state has been wildcarded and should not have been, Setting to default state", new Object[0]);
 				this.blockState = this.block.getDefaultState();
 			}
-			while(matcher.find()) {
+			while(matcher.find())
 				setStates.put(matcher.group(1), wildCard ? "*" : matcher.group(2));
-			}
 		} else {
-			Matcher stateMatch = statePattern.matcher(states);
+			Matcher stateMatch = MatchPatterns.statePattern.matcher(states);
 			while(matcher.find()) {
 				while(stateMatch.find()) {
 					if(!wildCard && stateMatch.group(2).equals("*")) {
 						WorldManager.logger.error("A state has been wildcarded and should not have been, Setting to default state", new Object[0]);
 						this.blockState = this.block.getDefaultState();
 					}
-					if(matcher.group(1).equals(stateMatch.group(1))) {
+					if(matcher.group(1).equals(stateMatch.group(1)))
 						setStates.put(matcher.group(1), stateMatch.group(2));
-					} else {
+					else
 						setStates.put(matcher.group(1), (wildCard ? "*" : matcher.group(2)));
-					}
 				}
 				stateMatch.reset();
 			}
@@ -80,27 +82,35 @@ public class BlockStateWrapper {
 		
 		for(IBlockState state : this.block.getBlockState().getValidStates()) {
 			String stringState = state.toString().replaceAll("[\\w:]+\\[|\\]", "");
-			Matcher match = statePattern.matcher(stringState);
+			Matcher match = MatchPatterns.statePattern.matcher(stringState);
 			
 			int count = 0;
 			while(match.find()) {
 				String st = setStates.get(match.group(1));
 				if(st != null) {
-					WorldManager.logger.debug("  " + stringState + " (" + match.group(2) + "==" + st + ") " + (st.equals(match.group(2)) || st.equals("*")) + " " + count, new Object[0]);
-					if(st.equals(match.group(2)) || (st.equals("*") && wildCard)) {
-						count++;
+					if(wildCard)
+						for(String part : st.split("&")) {
+							if(part.equals(match.group(2)) || part.startsWith("!")
+								&& !part.substring(1).equals(match.group(2)) || st.equals("*")) {
+								count++;
+							}
+						}
+					else {
+						if(st.contains("&") || st.contains("!"))
+							WorldManager.logger.error("A state has a wildcard notation and should not have been, ignoring", new Object[0]);
+						if(st.equals(match.group(2)))
+							count++;
 					}
+						
 				}
 			}
-			if(count == setStates.size()) {
-				if(!wildCard) {
-					this.blockState = state;
-					WorldManager.logger.debug("===== Found state: " + state + " =====", new Object[0]);
-					break;
-				} else {
-					this.allowedStates.put(state, count == setStates.size());
-					WorldManager.logger.debug("===== Found state: " + state + " =====", new Object[0]);
-				}
+			if(!wildCard && count == setStates.size()) {
+				this.blockState = state;
+				WorldManager.logger.debug("===== Found state: " + state + " =====", new Object[0]);
+				break;
+			} else {
+				this.allowedStates.put(state, count == setStates.size());
+				WorldManager.logger.debug("===== Found state: " + state + " =====", new Object[0]);
 			}
 		}
 	}

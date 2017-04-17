@@ -1,15 +1,18 @@
 package jplee.worldmanager;
 
+import java.io.File;
 import java.io.IOException;
 
 import jplee.jlib.util.Log;
-
 import jplee.worldmanager.command.CommandWorldManager;
 import jplee.worldmanager.config.GenConfig;
-import jplee.worldmanager.entity.EntityManager;
 import jplee.worldmanager.event.GuiChunkDebugEvent;
-import jplee.worldmanager.event.WorldEventManager;
-import jplee.worldmanager.gen.WorldGeneration;
+import jplee.worldmanager.event.WorldBlockEvent;
+import jplee.worldmanager.event.WorldEntityEvent;
+import jplee.worldmanager.event.WorldGenEvent;
+import jplee.worldmanager.manager.BlockManager;
+import jplee.worldmanager.manager.EntityManager;
+import jplee.worldmanager.manager.GenerationManager;
 import jplee.worldmanager.util.SaveFileUtils;
 import net.minecraft.server.MinecraftServer;
 import net.minecraftforge.common.MinecraftForge;
@@ -27,8 +30,8 @@ import net.minecraftforge.fml.relauncher.Side;
 public class WorldManager {
 	public static final String NAME = "World Manager";
 	public static final String MODID = "worldmanager";
-	public static final String VERSION = "1.0.3";
-	public static final String DEPENDENCIES = "required-after:Forge@[12.18.3.2185,)";
+	public static final String VERSION = "1.1.0";
+	public static final String DEPENDENCIES = "required-after:Forge@[12.18.2.2099,)";
 	public static final String MINECRAFT_VERSION = "[1.10.2]";
 	
 	public static final String CHUNK_REPLACE_TAG = "wmReplace";
@@ -41,6 +44,7 @@ public class WorldManager {
 	private static GenConfig config;
 	
 	private static boolean showDebugInfo = false;
+	private static WorldGenEvent worldEvents = new WorldGenEvent();
 	
 	public static void showDebug(boolean show) {
 		showDebugInfo = show;
@@ -48,36 +52,41 @@ public class WorldManager {
 	public static boolean isDebugShowing() {
 		return showDebugInfo;
 	}
+
+	public static boolean isStartInvEnabled() {
+		return config.isStartInvEnabled();
+	}
 	
 	public static void reloadConfig() {
 		config.loadConfig(false);
-		if(config.isReplaceablesEnabled())
-			WorldGeneration.instance.loadWorldGenerationInfo(config);
-		if(config.isStartInvEnabled())
-			EntityManager.instance.loadStartingItems(config);
+		GenerationManager.instance.loadWorldGenerationInfo(config);
+		EntityManager.instance.loadStartingItems(config);
+		BlockManager.instance.loadFromConfig(config);
 	}
 	
 	@Mod.EventHandler
 	public void preInit(FMLPreInitializationEvent event) {
 		logger.attachLogger(event.getModLog());
-		config = new GenConfig(event.getSuggestedConfigurationFile(), event.getSide() == Side.SERVER);
+		File configFolder = event.getSuggestedConfigurationFile();
+		config = new GenConfig(configFolder, event.getSide() == Side.SERVER);
 
-		if(config.isReplaceablesEnabled())
-			WorldGeneration.instance.loadWorldGenerationInfo(config);
-		WorldGeneration.instance.registerWorldGenerators();
-
-		if(config.isStartInvEnabled())
-			EntityManager.instance.loadStartingItems(config);
+		GenerationManager.instance.loadWorldGenerationInfo(config);
+		GenerationManager.instance.registerWorldGenerators();
+		EntityManager.instance.loadStartingItems(config);
+		BlockManager.instance.loadFromConfig(config);
 		
 		MinecraftForge.EVENT_BUS.register(this);
-		MinecraftForge.EVENT_BUS.register(new WorldEventManager());
+		MinecraftForge.EVENT_BUS.register(worldEvents);
+		MinecraftForge.TERRAIN_GEN_BUS.register(worldEvents);
+		MinecraftForge.ORE_GEN_BUS.register(worldEvents);
+		MinecraftForge.EVENT_BUS.register(new WorldBlockEvent());
+		MinecraftForge.EVENT_BUS.register(new WorldEntityEvent());
 	}
 	
 	@Mod.EventHandler
 	public void init(FMLInitializationEvent event) {
 		if(event.getSide() == Side.CLIENT) {
 			MinecraftForge.EVENT_BUS.register(new GuiChunkDebugEvent());
-//			MinecraftForge.EVENT_BUS.register(new GuiEventManager());
 		}
 	}
 	
@@ -104,12 +113,13 @@ public class WorldManager {
 	@Mod.EventHandler
 	public void serverStarting(FMLServerStartingEvent event) {
 		event.registerServerCommand(new CommandWorldManager());
-		
 	}
 	
 	@Mod.EventHandler
 	public void serverStopped(FMLServerStoppedEvent event) {
-		WorldGeneration.instance.clearQueuedChunks();
+		logger.info("Clearing world catch");
+		GenerationManager.instance.clearQueuedChunks();
 		EntityManager.instance.clearEntityInfoCatch();
+		BlockManager.instance.clearFallEvents();
 	}
 }
