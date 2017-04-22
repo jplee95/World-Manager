@@ -532,7 +532,7 @@ public class GenerationManager {
 		public void generate(Random random, int chunkX, int chunkZ, World world, IChunkGenerator chunkGenerator,
 			IChunkProvider chunkProvider) {
 			ChunkPos pos = new ChunkPos(chunkX, chunkZ);
-			if(isWorldProcessable(world) && loadedPendingChunks.containsEntry(world.provider.getDimension(), pos))
+			if(isWorldProcessable(world) && !loadedPendingChunks.containsEntry(world.provider.getDimension(), pos))
 				loadedPendingChunks.put(world.provider.getDimension(), pos);
 		}
 	}
