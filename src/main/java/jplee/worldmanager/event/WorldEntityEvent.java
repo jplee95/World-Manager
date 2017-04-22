@@ -70,7 +70,7 @@ public class WorldEntityEvent {
 	@SubscribeEvent
 	public void onSpawnLiving(WorldEvent.PotentialSpawns event) {
 		int height = EntityManager.instance.getMaxHostelSpawnHeight();
-		if(height > -1) {
+		if(height > -1 && EntityManager.instance.worldHasMaxHostileSpawnHeight(event.getWorld())) {
 			if(event.getPos() instanceof MutableBlockPos) {
 				MutableBlockPos pos = (MutableBlockPos)event.getPos();
 				if(event.getType() == EnumCreatureType.MONSTER)

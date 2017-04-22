@@ -17,6 +17,11 @@ public class WorldManagerPlugin implements IFMLLoadingPlugin {
 	public String[] getASMTransformerClass() {
 		return new String[] { "jplee.worldmanager.asm.WorldManagerClassTransformer" };
 	}
+
+	@Override
+	public String getAccessTransformerClass() {
+		return null;
+	}
 	
 	@Override
 	public String getModContainerClass() {
@@ -30,14 +35,9 @@ public class WorldManagerPlugin implements IFMLLoadingPlugin {
 
 	@Override
 	public void injectData(Map<String, Object> data) {
-		isObf = (Boolean) data.get("runtimeDeobfuscationEnabled");
+		isObf = (Boolean)data.get("runtimeDeobfuscationEnabled");
 		mcDir = (File)data.get("mcLocation");
 		CodeDefinition.setObfFlag(isObf);
-	}
-
-	@Override
-	public String getAccessTransformerClass() {
-		return null;
 	}
 
 }

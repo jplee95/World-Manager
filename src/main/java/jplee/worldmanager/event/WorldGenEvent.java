@@ -44,13 +44,15 @@ public class WorldGenEvent {
 								if(GenerationManager.instance.processChunk(world, pos)) {
 									chunk.resetRelightChecks();
 									chunk.setChunkModified();
-
-									world.playerEntities.forEach(player -> {
-										if(player instanceof EntityPlayerMP) {
-											EntityPlayerMP playerMp = (EntityPlayerMP) player;
-											playerMp.connection.sendPacket(new SPacketChunkData(chunk, 65535));
-										}
-									});
+	
+									if(!GenerationManager.instance.isReplacementOverride()) {
+										world.playerEntities.forEach(player -> {
+											if(player instanceof EntityPlayerMP) {
+												EntityPlayerMP playerMp = (EntityPlayerMP) player;
+												playerMp.connection.sendPacket(new SPacketChunkData(chunk, 65535));
+											}
+										});
+									}
 								}
 								GenerationManager.instance.removeFromQueue(world, chunk, 1);
 							}

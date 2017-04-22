@@ -7,136 +7,159 @@ import net.minecraftforge.common.config.Property;
 
 public class GenConfig {
 	
-	private Configuration config;
+	protected Configuration config;
 	private boolean isServer;
 
-	private String[] replaceables;
-	private String[] starting;
-	private String[] oreGen;
-	private String[] blockProperties;
+	protected String[] replaceables;
+	protected String[] starting;
+	protected String[] oreGen;
+	protected String[] blockProperties;
 	
-	private boolean replaceablesBlacklist;
-	private boolean oreGenBlacklist;
-	private boolean blockPropertyBlacklist;
+	protected boolean replaceablesBlacklist;
+	protected boolean oreGenBlacklist;
+	protected boolean blockPropertyBlacklist;
+	protected boolean hostileSpawnHeightBlackList;
 	
-	private int[] replaceablesDimensionsList;
-	private int[] oreGenDimensionsList;
-	private int[] blockPropertiesList;
+	protected int[] replaceablesDimensionsWorlds;
+	protected int[] oreGenDimensionsWorlds;
+	protected int[] blockPropertiesWorlds;
+	protected int[] hostileSpawnHeightWorlds;
 	
-	private boolean enableReplaceables = false;
-	private boolean enableOreGen = false;
-	private boolean enableStartInv = false;
-	private boolean enableBlockProperties = false;
+	protected boolean enableReplaceables = false;
+	protected boolean enableOreGen = false;
+	protected boolean enableStartInv = false;
+	protected boolean enableBlockProperties = false;
 	
-	private boolean cleanWorldReg = false;
-	private boolean enableExtenedWorldEdit = true;
+	private boolean enableReplacementOverride = false;
 	
-	private int maxHostelSpawnHeight = 256;
+	protected boolean cleanWorldReg = false;
+	protected boolean enableExtenedWorldEdit = true;
 	
-	private final String[] defaultReplaceables = {
+	protected int maxHostileSpawnHeight = -1;
+	
+	protected final String[] defaultReplaceables = {
 		"# minecraft:oak_stiars[*]",
 		"# minecraft:furnace[facing=north]|replace=minecraft:cobblestone"
 	};
-	private final String[] defaultStarting = {
+	protected final String[] defaultStarting = {
 		"# minecraft:dirt 2"
 	};
-	private final String[] defaultOreGen = {
+	protected final String[] defaultOreGen = {
 		"# minecraft:gold_block|min=8|max=45|minSize=1|maxSize=3|chance=2"
 	};
 	
-	private final String[] defaultProperties = {
+	protected final String[] defaultProperties = {
 		"# minecraft:dirt|gravity=true"
 	};
 	
+	
 	public GenConfig(File file, boolean isServer) {
-		this.config = new Configuration(file);
+		config = new Configuration(file);
 		this.isServer = isServer;
-		this.loadConfig(true);
+		loadConfig(true);
 	}
 	
 	public void loadConfig(boolean saveConfig) {
-		this.config.load();
+		config.load();
 		Property prop;
 
-//		prop = this.config.get("asm", "extenedWorldEdit", true);
+//		prop = config.get("asm", "extenedWorldEdit", true);
 //		if(saveConfig)
 //		prop.setComment("Enable extended world edit gui, Default: true");
-//		this.enableExtenedWorldEdit = prop.getBoolean();
+//		enableExtenedWorldEdit = prop.getBoolean();
 
-		prop = this.config.get("enable", "replace", false);
+		prop = config.get("enable", "replace", false);
 		if(saveConfig)
 			prop.setComment("Enable block replacement, Default: false");
-		this.enableReplaceables = prop.getBoolean();
+		enableReplaceables = prop.getBoolean();
 
-		prop = this.config.get("enable", "oreGen", false);
+		prop = config.get("enable", "oreGen", false);
 		if(saveConfig)
-			prop.setComment("Enable ore generation overrides, Default: false");
-		this.enableOreGen = prop.getBoolean();
+			prop.setComment("Enable ore generation, Default: false");
+		enableOreGen = prop.getBoolean();
 
-		prop = this.config.get("enable", "startInv", false);
+		prop = config.get("enable", "startInv", false);
 		if(saveConfig)
 			prop.setComment("Enable starting inventory, Default: false");
-		this.enableStartInv = prop.getBoolean();
+		enableStartInv = prop.getBoolean();
 		
-		prop = this.config.get("enable", "blockProperties", false);
+		prop = config.get("enable", "blockProperties", false);
 		if(saveConfig)
-			prop.setComment("Enable blockproperties, Default: false");
-		this.enableBlockProperties = prop.getBoolean();
+			prop.setComment("Enable block properties, Default: false");
+		enableBlockProperties = prop.getBoolean();
 
+		prop = config.get("enable", "replaceOverride", false);
+		if(saveConfig)
+			prop.setComment("If there is any form of unintended interactions in genreration\n"
+						  + "with this and another mod set this to true. This will cause a little\n"
+						  + "more generation lag if enabled.");
+		enableReplacementOverride = prop.getBoolean();
 		
-		prop = this.config.get("list", "replaceables", new int[0]);
+		
+		prop = config.get("list", "replaceablesWorlds", new int[0]);
 		if(saveConfig)
 			prop.setComment("A world blacklist for replaceables to not process in.\n"
 					  + "When 'replaceablesBlacklist' is false this will be used as a whitelist.");
-		this.replaceablesDimensionsList = prop.getIntList();
+		replaceablesDimensionsWorlds = prop.getIntList();
 		
-		prop = this.config.get("list", "replaceablesBlacklist", true);
+		prop = config.get("list", "replaceablesBlacklist", true);
 		if(saveConfig)
 			prop.setComment("Set this to false to have a white list for replaceables. Default: true");
-		this.replaceablesBlacklist = prop.getBoolean();
+		replaceablesBlacklist = prop.getBoolean();
 		
-		prop = this.config.get("list", "oreGen", new int[0]);
+		prop = config.get("list", "oreGenWorlds", new int[0]);
 		if(saveConfig)
 			prop.setComment("A world blacklist for ore generation to not process in.\n"
 			  		  + "When 'oreGenBlacklist' is false this will be used as a whitelist.");
-		this.oreGenDimensionsList = prop.getIntList();
+		oreGenDimensionsWorlds = prop.getIntList();
 		
-		prop = this.config.get("list", "oreGenBlacklist", true);
+		prop = config.get("list", "oreGenBlacklist", true);
 		if(saveConfig)
 			prop.setComment("Set this to false to have a whitelist for ore gen. Default: true");
-		this.oreGenBlacklist = prop.getBoolean();
+		oreGenBlacklist = prop.getBoolean();
 		
-		prop = this.config.get("list", "blockProperties", new int[0]);
+		prop = config.get("list", "blockPropertiesWorlds", new int[0]);
 		if(saveConfig)
 			prop.setComment("A World blacklist for block properties to have no effect in.\n"
 					  	  + "When 'blockPropertiesBlacklist' is false this will be used as a whitelist.");
-		this.blockPropertiesList = prop.getIntList();
+		blockPropertiesWorlds = prop.getIntList();
 		
-		prop = this.config.get("list", "blockPropertiesBlacklist", true);
+		prop = config.get("list", "blockPropertiesBlacklist", true);
 		if(saveConfig)
 			prop.setComment("Set this to false to have a whitelist for block properties. Default: true");
-		this.blockPropertyBlacklist = prop.getBoolean();
+		blockPropertyBlacklist = prop.getBoolean();
+		
+		prop = config.get("list", "hostileSpawnHeightWorlds", new int[0]);
+		if(saveConfig)
+			prop.setComment("A World blacklist for hostel max spawn height to have no effect in.\n"
+						  + "When 'hostelSpawnHeightBlacklist' is false this will be used as a whitelist.");
+		hostileSpawnHeightWorlds = prop.getIntList();
+		
+		prop = config.get("list", "hostelSpawnHeightBlacklist", true);
+		if(saveConfig)
+			prop.setComment("Set this to false to have a whitelist for max hostel spawn height. Default: true");
+		hostileSpawnHeightBlackList = prop.getBoolean();
 		
 		if(/*isServer || */config.hasKey("server", "cleanWorldRegistry")) {
-			prop = this.config.get("server", "cleanWorldRegistry", false);
+			prop = config.get("server", "cleanWorldRegistry", false);
 			if(saveConfig)
 				prop.setComment("This will clean all the registry of unused locations. Default: false\n"
 							  + "Do not use this unless you know what you are doing!\n"
 							  + "This will create a backup of the world!\n"
 							  + "This will return to false after server start!");
 			if(isServer) {
-				this.cleanWorldReg = prop.getBoolean();
-				if(this.cleanWorldReg) prop.set(false);
+				cleanWorldReg = prop.getBoolean();
+				if(cleanWorldReg) prop.set(false);
 			}else if(prop.getBoolean()) {
 				prop.set(false);
 			}
 		} 
 		if(!isServer) {
-			this.cleanWorldReg = false;
+			cleanWorldReg = false;
 		}
 		
 		
-		prop = this.config.get("general", "replace", this.defaultReplaceables);
+		prop = config.get("general", "replace", defaultReplaceables);
 		if(saveConfig)
 			prop.setComment("This list is used for replacing generated blocks\n"
 					  + "Each new line will create a new entry for the replacement process\n"
@@ -158,9 +181,9 @@ public class GenConfig {
 					  + "  loot=string - the loot table that will be set to lootable inventories (Currently vanilla only inventories or extentions of)\n"
 					  + "  match=string - matches states given, separate states with a comma, only works on equivalent states (NOT IMPLEMENTED)\n"
 					  + "More will come in the future");
-		this.replaceables = prop.getStringList();
+		replaceables = prop.getStringList();
 		
-		prop = this.config.get("general", "startInv", this.defaultStarting);
+		prop = config.get("general", "startInv", defaultStarting);
 		if(saveConfig)
 			prop.setComment("This list is for adding to the starting inventory\n"
 					  + "Each new line is a new item to add the starting inventory\n"
@@ -168,9 +191,9 @@ public class GenConfig {
 					  + "you can comment out lines with '#' if needed\n"
 					  + "Every line needs to be setup as below. nbt, count and meta are optional:\n"
 					  + "  unlocalized_block_id:meta count {nbt}");
-		this.starting = prop.getStringList();
+		starting = prop.getStringList();
 		
-		prop = this.config.get("general", "oreGen", this.defaultOreGen);
+		prop = config.get("general", "oreGen", defaultOreGen);
 		if(saveConfig)
 			prop.setComment("This list is for overriding / adding to world ore generation\n"
 					  + "Each new line is a new ore generation\n"
@@ -181,7 +204,7 @@ public class GenConfig {
 					  + "Modifiers for ore generation\n"
 					  + "  replace=unlocalized_block_id[state] - the block to replace. Default: minecraft:stone\n"
 					  + "   - You can use ore dictionary: ore:oreName\n"
-					  + "  dimension=int - The dimension that the ore will generate in. Default: any dimesion\n"
+					  + "  dimension=int - The dimension that the ore will generate in. Default: any dimension\n"
 					  + "  biome=string - replace only in biomes given, separate biomes with a comma (NOT IMPLEMENTED YET)\n"
 					  + "  type=string - The type of generation that will happen (NOT IMPLEMENTED). Default: standard\n"
 					  + "   - plain - will generate the ores in a plane style generation\n"
@@ -194,9 +217,9 @@ public class GenConfig {
 					  + "  chance=int - The chances that this ore will generate in the chunk. Default: 8\n"
 					  + "  override=boolean - Should override the original ore generation. Default: false"
 					  + "");
-		this.oreGen = prop.getStringList();
+		oreGen = prop.getStringList();
 		
-		prop = this.config.get("general", "blockProperties", this.defaultProperties);
+		prop = config.get("general", "blockProperties", defaultProperties);
 		if(saveConfig)
 			prop.setComment("This list is for adding properties to already existing blocks\n"
 			  		  + "Each new line is a new entry for that block\n"
@@ -206,89 +229,101 @@ public class GenConfig {
 					  + "  Any part of the state for this can be set to '*' to wild card it\n"
 					  + "\n"
 					  + "Modifiers for blocks properties\n"
-					  + "  dimension=int - the dimension that this will effect, Default: any dimesion\n"
+					  + "  dimension=int - the dimension that this will effect, Default: any dimension\n"
 					  + "  drop=unlocalized_block_id:meta count {nbt} - the item that will be dropped\n"
 					  + "   - nbt, count and meta are optional\n"
 					  + "  silktouch=boolean - if the block should keep itself if tool has silk touch, only effective if defined drop, Default: true"
 					  + "  gravity=bool - should the block be affected by gravity, Default: false\n"
 					  + "  hold=double - the chance that the block will hold onto an adjacent block, Range: 0.0 to 1.0, Default: 1.0\n"
 					  + "  strength=int - the distance the block can be from a ground source, Range: 0 to 16, Default: 0 (NOT IMPLEMENTED YET)");
-		this.blockProperties = prop.getStringList();
+		blockProperties = prop.getStringList();
 		
-		prop = this.config.get("general", "maxHostelSpawnHeight", -1);
+		prop = config.get("general", "maxHostileSpawnHeight", -1);
 		if(saveConfig)
-			prop.setComment("This controls the maximum spawn height of naturally spawned hostal mobs, Range: -1, Max World Height, Default: -1");
-		this.maxHostelSpawnHeight = prop.getInt();
+			prop.setComment("This controls the maximum spawn height of naturally spawned hostile mobs, Range: -1, Max World Height, Default: -1");
+		maxHostileSpawnHeight = prop.getInt();
 		
 		if(saveConfig)
-			this.config.save();
+			config.save();
 	}
 	
 	public final String[] getReplaceables() {
-		return this.replaceables;
+		return replaceables;
 	}
 	
 	public String[] getStartingInventory() {
-		return this.starting;
+		return starting;
 	}
 	
 	public String[] getOreGeneration() {
-		return this.oreGen;
+		return oreGen;
 	}
 	
 	public String[] getBlockProperties() {
-		return this.blockProperties;
+		return blockProperties;
 	}
 	
 	public boolean isExtWorldEditEnabled() {
-		return this.enableExtenedWorldEdit;
+		return enableExtenedWorldEdit;
 	}
 	
 	public boolean isReplaceablesEnabled() {
-		return this.enableReplaceables;
+		return enableReplaceables;
 	}
 	
 	public boolean isOreGenEnabled() {
-		return this.enableOreGen;
+		return enableOreGen;
 	}
 	
 	public boolean isStartInvEnabled() {
-		return this.enableStartInv;
+		return enableStartInv;
 	}
 	
 	public boolean isBlockPropertiesEnabled() {
-		return this.enableBlockProperties;
+		return enableBlockProperties;
 	}
 	
 	public boolean shouldCleanWorldReg() {
-		return this.cleanWorldReg;
+		return cleanWorldReg;
 	}
 	
 	public boolean isReplaceablesBlacklist() {
-		return this.replaceablesBlacklist;
+		return replaceablesBlacklist;
 	}
 
 	public boolean isOreGenBlacklist() {
-		return this.oreGenBlacklist;
+		return oreGenBlacklist;
 	}
 	
 	public boolean isBlockPropertyBlacklist() {
-		return this.blockPropertyBlacklist;
+		return blockPropertyBlacklist;
 	}
 
 	public int[] getReplaceablesDimensionsList() {
-		return this.replaceablesDimensionsList;
+		return replaceablesDimensionsWorlds;
 	}
 	
 	public int[] getOreGenDimensionsList() {
-		return this.oreGenDimensionsList;
+		return oreGenDimensionsWorlds;
 	}
 	
 	public int[] getPropertyDimensionsList() {
-		return this.blockPropertiesList;
+		return blockPropertiesWorlds;
 	}
 	
-	public int getMaxHostelSpawnHeight() {
-		return maxHostelSpawnHeight;
+	public int getMaxHostileSpawnHeight() {
+		return maxHostileSpawnHeight;
+	}
+	
+	public int[] getHostileSpawnHeightWorlds() {
+		return hostileSpawnHeightWorlds;
+	}
+	
+	public boolean isHostileSpawnHeightBlackList() {
+		return hostileSpawnHeightBlackList;
+	}
+	
+	public boolean isEnableReplacementOverride() {
+		return enableReplacementOverride;
 	}
 }

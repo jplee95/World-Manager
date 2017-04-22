@@ -12,6 +12,7 @@ import jplee.worldmanager.util.ItemUtils;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTException;
+import net.minecraft.world.World;
 
 public class EntityManager {
 
@@ -24,15 +25,31 @@ public class EntityManager {
 	
 	private int maxHostelSpawnHeight;
 	
+	private List<Integer> hostileSpawnHeightWorlds;
+	private boolean hostileSpawnHeightBlacklist;
+	
 	private EntityManager() {
-		 startedPlayers = Maps.newHashMap();
+		startingItems = Lists.newArrayListWithCapacity(0);
+		startedPlayers = Maps.newHashMap();
+		hostileSpawnHeightWorlds = Lists.newArrayList();
 		 
-		 startingInventory = false;
-		 maxHostelSpawnHeight = -1;
+		startingInventory = false;
+		maxHostelSpawnHeight = -1;
+		hostileSpawnHeightBlacklist = true;
 	}
 	
-	public void loadStartingItems(GenConfig config) {
-		maxHostelSpawnHeight = config.getMaxHostelSpawnHeight();
+	public void loadFromConfig(GenConfig config) {
+		if(!startingItems.isEmpty())
+			startingItems.clear();
+		if(!hostileSpawnHeightWorlds.isEmpty())
+			hostileSpawnHeightWorlds.clear();
+		
+		maxHostelSpawnHeight = config.getMaxHostileSpawnHeight();
+		
+		hostileSpawnHeightBlacklist = config.isHostileSpawnHeightBlackList();
+		if(maxHostelSpawnHeight != -1)
+			for(int i : config.getHostileSpawnHeightWorlds())
+				hostileSpawnHeightWorlds.add(i);
 		
 		this.startingInventory = config.isStartInvEnabled();
 		if(startingInventory) {
@@ -56,6 +73,16 @@ public class EntityManager {
 				}
 			}
 		}
+	}
+	
+	public boolean worldHasMaxHostileSpawnHeight(World world) {
+		return worldHasMaxHostileSpawnHeight(world.provider.getDimension());
+	}
+	
+	private boolean worldHasMaxHostileSpawnHeight(int world) {
+		boolean contains = hostileSpawnHeightWorlds.contains(world);
+		return maxHostelSpawnHeight != -1 && (contains && !hostileSpawnHeightBlacklist
+			|| !contains && hostileSpawnHeightBlacklist);
 	}
 	
 	public boolean startingInventory() {

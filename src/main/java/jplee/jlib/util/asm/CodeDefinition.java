@@ -133,7 +133,7 @@ public class CodeDefinition {
 	public boolean equals(Object obj) {
 		if (obj instanceof CodeDefinition) {
 			CodeDefinition def = (CodeDefinition) obj;
-			return def.name == this.name;
+			return name.equals(def.name);
 		}
 		return false;
 	}

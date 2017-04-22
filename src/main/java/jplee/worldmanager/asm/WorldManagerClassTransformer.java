@@ -1,10 +1,6 @@
 package jplee.worldmanager.asm;
 
-import static org.objectweb.asm.Opcodes.ALOAD;
-import static org.objectweb.asm.Opcodes.GETFIELD;
-import static org.objectweb.asm.Opcodes.INVOKESTATIC;
-import static org.objectweb.asm.Opcodes.NEW;
-import static org.objectweb.asm.Opcodes.RETURN;
+import static org.objectweb.asm.Opcodes.*;
 
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
@@ -48,21 +44,21 @@ public class WorldManagerClassTransformer extends ClassTransformer {
 		AbstractInsnNode targetNode = null;
 		
 		for(AbstractInsnNode node : method.instructions.toArray()) {
-			if(this.foundOpcode(node, RETURN)) {
+			if(foundOpcode(node, RETURN)) {
 				targetNode = node.getPrevious().getPrevious();
 				break;
 			}
 		}
 		
 		if(targetNode != null) {
-			this.newWorkList();
-			this.addVarNode(ALOAD, 1);
-			this.addFieldNode(GETFIELD, CodeDefins.GUI_BUTTON, "id");
-			this.addVarNode(ALOAD, 0);
-			this.addVarNode(ALOAD, 0);
-			this.addFieldNode(GETFIELD, CodeDefins.GUI_WORLD_EDIT, "worldId");
-			this.addMethodNode(INVOKESTATIC, CodeDefins.CODE_DEFINES, "worldOptionAction", false);
-			this.insertBefore(targetNode, method.instructions);
+			newWorkList();
+			addVarNode(ALOAD, 1);
+			addFieldNode(GETFIELD, CodeDefins.GUI_BUTTON, "id");
+			addVarNode(ALOAD, 0);
+			addVarNode(ALOAD, 0);
+			addFieldNode(GETFIELD, CodeDefins.GUI_WORLD_EDIT, "worldId");
+			addMethodNode(INVOKESTATIC, CodeDefins.CODE_DEFINES, "worldOptionAction", false);
+			insertBefore(targetNode, method.instructions);
 		}
 	}
 
@@ -70,8 +66,8 @@ public class WorldManagerClassTransformer extends ClassTransformer {
 		AbstractInsnNode targetNode = null;
 		
 		for(AbstractInsnNode node : method.instructions.toArray()) {
-			if(this.foundOpcode(node, ALOAD, 0)) {
-				if(this.foundOpcode(node.getNext(), NEW, CodeDefins.GUI_BUTTON.name)) {
+			if(foundOpcode(node, ALOAD, 0)) {
+				if(foundOpcode(node.getNext(), NEW, CodeDefins.GUI_BUTTON.name)) {
 					targetNode = node;
 					break;
 				}
@@ -79,12 +75,12 @@ public class WorldManagerClassTransformer extends ClassTransformer {
 		}
 		
 		if(targetNode != null) {
-			this.newWorkList();
-			this.addVarNode(ALOAD, 0);
-			this.addVarNode(ALOAD, 0);
-			this.addFieldNode(GETFIELD, CodeDefins.GUI_WORLD_EDIT, "buttonList");
-			this.addMethodNode(INVOKESTATIC, CodeDefins.CODE_DEFINES, "addWorldOptionButton", false);
-			this.insertBefore(targetNode, method.instructions);
+			newWorkList();
+			addVarNode(ALOAD, 0);
+			addVarNode(ALOAD, 0);
+			addFieldNode(GETFIELD, CodeDefins.GUI_WORLD_EDIT, "buttonList");
+			addMethodNode(INVOKESTATIC, CodeDefins.CODE_DEFINES, "addWorldOptionButton", false);
+			insertBefore(targetNode, method.instructions);
 		}
 	}
 }

@@ -1,6 +1,5 @@
 package jplee.worldmanager.util;
 
-import jplee.worldmanager.WorldManager;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.JsonToNBT;
@@ -13,7 +12,6 @@ public class ItemUtils {
 		
 		int amount = 1;
 		if(parts.length >= 2) {
-			WorldManager.logger.info(parts[1], new Object[0]);
 			amount = Integer.parseInt(parts[1]);
 		}
 		

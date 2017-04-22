@@ -1,6 +1,7 @@
 package jplee.worldmanager.command;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import jplee.jlib.command.MultiCommandBase;
@@ -56,6 +57,7 @@ public class CommandWorldManager extends MultiCommandBase {
 		List<String> completions = super.getTabCompletionOptions(server, sender, args, pos);
 		if(args.length == 1 && "help".startsWith(args[0]))
 			completions.add("help");
+		Collections.sort(completions);
 		return completions;
 	}
 }

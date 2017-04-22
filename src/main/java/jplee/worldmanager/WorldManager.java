@@ -30,7 +30,7 @@ import net.minecraftforge.fml.relauncher.Side;
 public class WorldManager {
 	public static final String NAME = "World Manager";
 	public static final String MODID = "worldmanager";
-	public static final String VERSION = "1.1.0";
+	public static final String VERSION = "1.1.1";
 	public static final String DEPENDENCIES = "required-after:Forge@[12.18.2.2099,)";
 	public static final String MINECRAFT_VERSION = "[1.10.2]";
 	
@@ -59,8 +59,8 @@ public class WorldManager {
 	
 	public static void reloadConfig() {
 		config.loadConfig(false);
-		GenerationManager.instance.loadWorldGenerationInfo(config);
-		EntityManager.instance.loadStartingItems(config);
+		GenerationManager.instance.loadFromConfig(config);
+		EntityManager.instance.loadFromConfig(config);
 		BlockManager.instance.loadFromConfig(config);
 	}
 	
@@ -70,9 +70,9 @@ public class WorldManager {
 		File configFolder = event.getSuggestedConfigurationFile();
 		config = new GenConfig(configFolder, event.getSide() == Side.SERVER);
 
-		GenerationManager.instance.loadWorldGenerationInfo(config);
+		GenerationManager.instance.loadFromConfig(config);
 		GenerationManager.instance.registerWorldGenerators();
-		EntityManager.instance.loadStartingItems(config);
+		EntityManager.instance.loadFromConfig(config);
 		BlockManager.instance.loadFromConfig(config);
 		
 		MinecraftForge.EVENT_BUS.register(this);
