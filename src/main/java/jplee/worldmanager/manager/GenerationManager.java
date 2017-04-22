@@ -531,8 +531,9 @@ public class GenerationManager {
 		@Override
 		public void generate(Random random, int chunkX, int chunkZ, World world, IChunkGenerator chunkGenerator,
 			IChunkProvider chunkProvider) {
-			if(isWorldProcessable(world))
-				loadedPendingChunks.put(world.provider.getDimension(), new ChunkPos(chunkX, chunkZ));
+			ChunkPos pos = new ChunkPos(chunkX, chunkZ);
+			if(isWorldProcessable(world) && loadedPendingChunks.containsEntry(world.provider.getDimension(), pos))
+				loadedPendingChunks.put(world.provider.getDimension(), pos);
 		}
 	}
 
