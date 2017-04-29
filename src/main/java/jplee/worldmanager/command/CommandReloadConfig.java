@@ -34,7 +34,7 @@ public class CommandReloadConfig extends CommandBase {
 	@Override
 	public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
 		if(args.length == 0) {
-			WorldManager.reloadConfig();
+			WorldManager.reloadConfig(true);
 			notifyCommandListener(sender, this, "commands.wm.reloadconfig.complete", new Object[0]);
 		} else {
 			notifyCommandListener(sender, this, "commands.wm.reloadconfig.usage", new Object[0]);

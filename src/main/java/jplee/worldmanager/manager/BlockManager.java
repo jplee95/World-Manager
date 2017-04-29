@@ -11,7 +11,7 @@ import com.google.common.collect.Maps;
 
 import jplee.jlib.util.Pair;
 import jplee.worldmanager.WorldManager;
-import jplee.worldmanager.config.GenConfig;
+import jplee.worldmanager.config.WorldManagerConfig;
 import jplee.worldmanager.util.BlockProperty;
 import jplee.worldmanager.util.ScanPos;
 import net.minecraft.block.Block;
@@ -30,7 +30,7 @@ import net.minecraftforge.oredict.OreDictionary;
 public class BlockManager {
 
 	public static final BlockManager instance = new BlockManager();
-	
+
 	private Map<Integer,Map<Block,BlockProperty>> blockProperties;
 	private Map<Integer,Map<String,BlockProperty>> oreBlockProperties;
 	private Map<Integer,List<Pair<BlockPos,Integer>>> fallEvents;
@@ -46,30 +46,28 @@ public class BlockManager {
 		propertyWorlds = Lists.newArrayList();
 		fallEvents = Maps.newHashMap();
 	}
-	
-	public void loadFromConfig(GenConfig config) {
-		if(!blockProperties.isEmpty())
-			blockProperties.clear();
-		if(!oreBlockProperties.isEmpty())
-			oreBlockProperties.clear();
-		if(!propertyWorlds.isEmpty())
-			propertyWorlds.clear();
-		
+
+	public void loadFromConfig(WorldManagerConfig config) {
+		if(!blockProperties.isEmpty()) blockProperties.clear();
+		if(!oreBlockProperties.isEmpty()) oreBlockProperties.clear();
+		if(!propertyWorlds.isEmpty()) propertyWorlds.clear();
+
 		this.propertiesEnabled = config.isBlockPropertiesEnabled();
-		
+
 		this.worldBlacklist = config.isBlockPropertyBlacklist();
 		if(propertiesEnabled) {
 			Map<Integer,Map<Block,BlockProperty>> blockProp = Maps.newHashMap();
 			Map<Integer,Map<String,BlockProperty>> oreBlockProp = Maps.newHashMap();
-	
+
 			for(int i = 0; i < config.getPropertyDimensionsList().length; i++)
 				this.propertyWorlds.add(config.getOreGenDimensionsList()[i]);
-	
+
 			for(String line : config.getBlockProperties()) {
 				if(!line.startsWith("#") && !line.isEmpty()) {
 					BlockProperty prop = BlockProperty.build(line);
 					try {
-						int dimension = prop.hasData("dimension") ? prop.getInt("dimension") : ManagerUtil.ANY_DIMENSION;
+						int dimension = prop.hasData("dimension") ? prop.getInt("dimension")
+							: ManagerUtil.ANY_DIMENSION;
 						if(this.propertyWorlds.contains(dimension) && !this.worldBlacklist
 							|| !this.propertyWorlds.contains(dimension) && this.worldBlacklist
 							|| dimension == ManagerUtil.ANY_DIMENSION) {
@@ -91,23 +89,25 @@ public class BlockManager {
 			oreBlockProperties.putAll(oreBlockProp);
 		}
 	}
-	
+
 	public boolean worldHasProperties(World world) {
 		return worldHasProperties(world.provider.getDimension());
 	}
-	
+
 	private boolean worldHasProperties(int world) {
 		boolean hasProp = false;
 		if(this.propertiesEnabled) {
 			hasProp = blockProperties.containsKey(world) && !blockProperties.get(world).isEmpty()
-				|| blockProperties.containsKey(ManagerUtil.ANY_DIMENSION) && !blockProperties.get(ManagerUtil.ANY_DIMENSION).isEmpty();
+				|| blockProperties.containsKey(ManagerUtil.ANY_DIMENSION)
+					&& !blockProperties.get(ManagerUtil.ANY_DIMENSION).isEmpty();
 			hasProp = hasProp || oreBlockProperties.containsKey(world) && !oreBlockProperties.get(world).isEmpty()
-				|| oreBlockProperties.containsKey(ManagerUtil.ANY_DIMENSION) && !oreBlockProperties.get(ManagerUtil.ANY_DIMENSION).isEmpty();
+				|| oreBlockProperties.containsKey(ManagerUtil.ANY_DIMENSION)
+					&& !oreBlockProperties.get(ManagerUtil.ANY_DIMENSION).isEmpty();
 		}
 		boolean contains = propertyWorlds.contains(world);
 		return hasProp && ((contains && !this.worldBlacklist) || (!contains && this.worldBlacklist));
 	}
-	
+
 	// TODO: Configure proper property getting function
 	public Collection<BlockProperty> getProperties(World world, Block block) {
 		List<BlockProperty> props = Lists.newArrayList();
@@ -136,7 +136,7 @@ public class BlockManager {
 		}
 		return props;
 	}
-	
+
 	public boolean canFall(World world, IBlockState state, BlockPos pos) {
 		boolean fall = false;
 		if(!cantFall(state)) {
@@ -159,13 +159,13 @@ public class BlockManager {
 						break;
 					}
 				}
-				
+
 				// TODO: Finish strength property
-//				int str = getBlockStrength(world, pos);
+				// int str = getBlockStrength(world, pos);
 				int str = -1;
-				
+
 				if(str >= 0) {
-				 fall = false;
+					fall = false;
 				} else if(!fall) {
 					Random rand = new Random();
 					if(hold != 1.0 && (hold == 0.0 || rand.nextDouble() > hold)) {
@@ -198,7 +198,7 @@ public class BlockManager {
 		}
 		events.add(new Pair<BlockPos,Integer>(pos, delay));
 	}
-	
+
 	public void clearFallEvents() {
 		for(List<Pair<BlockPos,Integer>> events : fallEvents.values())
 			events.clear();
@@ -244,13 +244,11 @@ public class BlockManager {
 				if(prop.hasData("strength") && strength == null) strength = prop.getInt("strength");
 			}
 		}
-		
-		if(!hasProperty || strength == 0)
-			return 0;
-		
-		if(!BlockFalling.canFallThrough(world.getBlockState(pos.down())))
-			return strength;
-		
+
+		if(!hasProperty || strength == 0) return 0;
+
+		if(!BlockFalling.canFallThrough(world.getBlockState(pos.down()))) return strength;
+
 		ScanPos start = new ScanPos(pos, 0);
 		int depth = 0;
 		List<Pair<ScanPos,Integer>> depthPos = new ArrayList<>();
@@ -270,13 +268,14 @@ public class BlockManager {
 				if(!BlockFalling.canFallThrough(world.getBlockState(p.down()))) {
 					int groundCount = 0;
 					for(EnumFacing face : EnumFacing.HORIZONTALS) {
-						groundCount += (!BlockFalling.canFallThrough(world.getBlockState(p.down().offset(face))) ? 1 : 0);
+						groundCount += (!BlockFalling.canFallThrough(world.getBlockState(p.down().offset(face))) ? 1
+							: 0);
 					}
 					if(groundCount >= 2 && !BlockFalling.canFallThrough(world.getBlockState(p.down().down()))) {
 						ground = true;
 						break;
 					}
-					
+
 					depthPos.add(new Pair<>(new ScanPos(p.down(), 0), strength));
 					down = true;
 				} else {
@@ -284,19 +283,16 @@ public class BlockManager {
 						strength /= 2;
 						down = false;
 					}
-					if(p.getDepth() > depth)
-						depth = p.getDepth();
+					if(p.getDepth() > depth) depth = p.getDepth();
 					for(EnumFacing face : EnumFacing.HORIZONTALS) {
 						ScanPos sp = p.offset(face);
-						if(sp.getDepth() <= strength && !points.contains(sp) && !finished.contains(sp) &&
-							!BlockFalling.canFallThrough(world.getBlockState(sp)))
-							points.add(sp);
+						if(sp.getDepth() <= strength && !points.contains(sp) && !finished.contains(sp)
+							&& !BlockFalling.canFallThrough(world.getBlockState(sp))) points.add(sp);
 					}
 				}
 			}
 		}
-		if(!ground)
-			return -1;
+		if(!ground) return -1;
 		return strength - depth;
 	}
 }

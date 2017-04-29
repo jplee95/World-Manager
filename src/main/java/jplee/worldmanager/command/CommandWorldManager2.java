@@ -58,7 +58,7 @@ public class CommandWorldManager2 extends CommandBase {
 					notifyCommandListener(sender, this, "commands.wm.processchunk.complete", new Object[0]);
 				}
 			} else if(args[0].equals("reloadconfig") && args.length == 1) {
-				WorldManager.reloadConfig();
+				WorldManager.reloadConfig(true);
 				notifyCommandListener(sender, this, "commands.wm.reloadconfig.complete", new Object[0]);
 			} else if(args[0].equals("toggledebug") && args.length == 1) {
 				WorldManager.showDebug(!WorldManager.isDebugShowing());

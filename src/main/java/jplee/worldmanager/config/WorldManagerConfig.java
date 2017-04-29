@@ -2,10 +2,16 @@ package jplee.worldmanager.config;
 
 import java.io.File;
 
+import jplee.worldmanager.WorldManager;
+import jplee.worldmanager.manager.BlockManager;
+import jplee.worldmanager.manager.EntityManager;
+import jplee.worldmanager.manager.GenerationManager;
 import net.minecraftforge.common.config.Configuration;
 import net.minecraftforge.common.config.Property;
+import net.minecraftforge.fml.client.event.ConfigChangedEvent;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
-public class GenConfig {
+public class WorldManagerConfig {
 	
 	protected Configuration config;
 	private boolean isServer;
@@ -30,7 +36,7 @@ public class GenConfig {
 	protected boolean enableStartInv = false;
 	protected boolean enableBlockProperties = false;
 	
-	private boolean enableReplacementOverride = false;
+	protected boolean enableReplacementOverride = false;
 	
 	protected boolean cleanWorldReg = false;
 	protected boolean enableExtenedWorldEdit = true;
@@ -52,15 +58,19 @@ public class GenConfig {
 		"# minecraft:dirt|gravity=true"
 	};
 	
-	
-	public GenConfig(File file, boolean isServer) {
+	public WorldManagerConfig(File file, boolean isServer) {
 		config = new Configuration(file);
 		this.isServer = isServer;
 		loadConfig(true);
 	}
 	
 	public void loadConfig(boolean saveConfig) {
-		config.load();
+		loadConfig(saveConfig, false);
+	}
+	
+	public void loadConfig(boolean saveConfig, boolean fromGui) {
+		if(!fromGui)
+			config.load();
 		Property prop;
 
 //		prop = config.get("asm", "extenedWorldEdit", true);
@@ -90,7 +100,7 @@ public class GenConfig {
 
 		prop = config.get("enable", "replaceOverride", false);
 		if(saveConfig)
-			prop.setComment("If there is any form of unintended interactions in genreration\n"
+			prop.setComment("If there is any form of unintended interactions in generation\n"
 						  + "with this and another mod set this to true. This will cause a little\n"
 						  + "more generation lag if enabled.");
 		enableReplacementOverride = prop.getBoolean();
@@ -157,7 +167,6 @@ public class GenConfig {
 		if(!isServer) {
 			cleanWorldReg = false;
 		}
-		
 		
 		prop = config.get("general", "replace", defaultReplaceables);
 		if(saveConfig)
@@ -247,6 +256,22 @@ public class GenConfig {
 			config.save();
 	}
 	
+	@SubscribeEvent
+	public void onConfigChanged(ConfigChangedEvent.OnConfigChangedEvent event) {
+		if(event.getModID().equals(WorldManager.MODID)) {
+			if(config.hasChanged()) {
+				loadConfig(true, true);
+				BlockManager.instance.loadFromConfig(this);
+				EntityManager.instance.loadFromConfig(this);
+				GenerationManager.instance.loadFromConfig(this);
+			}
+		}
+	}
+
+	public Configuration getBaseConfig() {
+		return config;
+	}
+	
 	public final String[] getReplaceables() {
 		return replaceables;
 	}
@@ -326,4 +351,5 @@ public class GenConfig {
 	public boolean isEnableReplacementOverride() {
 		return enableReplacementOverride;
 	}
+
 }

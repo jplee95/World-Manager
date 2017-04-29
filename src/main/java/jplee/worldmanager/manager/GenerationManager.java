@@ -14,7 +14,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.primitives.Doubles;
 
 import jplee.worldmanager.WorldManager;
-import jplee.worldmanager.config.GenConfig;
+import jplee.worldmanager.config.WorldManagerConfig;
 import jplee.worldmanager.gen.ore.WorldGenVanillaMinable;
 import jplee.worldmanager.util.OreGenInfo;
 import jplee.worldmanager.util.Replaceable;
@@ -80,7 +80,7 @@ public class GenerationManager {
 		this.enableOreGen = false;
 	}
 
-	public void loadFromConfig(GenConfig config) {
+	public void loadFromConfig(WorldManagerConfig config) {
 		if(!sortedOreDictionaries.isEmpty()) sortedOreDictionaries.clear();
 		if(!sortedReplaceables.isEmpty()) sortedReplaceables.clear();
 		if(!generatableOres.isEmpty()) generatableOres.clear();
@@ -480,6 +480,7 @@ public class GenerationManager {
 
 	private void setBlock(World world, BlockPos pos, IBlockState state, String loot, int flags) {
 		IBlockState replace = (state == null ? Blocks.AIR.getDefaultState() : state);
+		world.removeTileEntity(pos);
 		world.setBlockState(pos, replace, flags);
 		if(state != null) {
 			if(state.getBlock().hasTileEntity(state)) {

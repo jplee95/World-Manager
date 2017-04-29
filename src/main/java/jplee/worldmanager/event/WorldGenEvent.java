@@ -1,5 +1,7 @@
 package jplee.worldmanager.event;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.Collection;
 
 import com.google.common.collect.Lists;
@@ -10,11 +12,14 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.play.server.SPacketChunkData;
 import net.minecraft.util.math.ChunkPos;
+import net.minecraft.world.GameRules;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.chunk.Chunk;
+import net.minecraftforge.event.terraingen.ChunkGeneratorEvent;
 import net.minecraftforge.event.world.ChunkDataEvent;
 import net.minecraftforge.event.world.ChunkEvent;
+import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.minecraftforge.fml.relauncher.Side;
@@ -62,6 +67,20 @@ public class WorldGenEvent {
 			}
 		}
 	}
+
+	@SubscribeEvent
+	public void onWorldLoad(WorldEvent.Load event) {
+		GameRules rules = event.getWorld().getGameRules();
+		for(String rule : rules.getRules()) {
+			
+		}
+	}
+
+	@SubscribeEvent
+	public void onWorldSave(WorldEvent.Save event) {
+		File file = new File(event.getWorld().getSaveHandler().getWorldDirectory(), "gamerule.dat");
+		
+	}
 	
 	@SubscribeEvent
 	public void onChunkDataLoad(ChunkDataEvent.Load event) {
@@ -69,7 +88,8 @@ public class WorldGenEvent {
 		NBTTagCompound compound = (NBTTagCompound) event.getData().getTag(WorldManager.MODID);
 		
 		if(compound != null) {
-			if(compound.hasKey(WorldManager.CHUNK_REPLACE_TAG) || GenerationManager.instance.isWorldProcessable(world)) {
+			if(compound.hasKey(WorldManager.CHUNK_REPLACE_TAG) && GenerationManager.instance.isWorldProcessable(world)
+				&& !GenerationManager.instance.isQueuedChunk(world, event.getChunk())) {
 				GenerationManager.instance.addToQueue(world, event.getChunk(), false);
 			}
 		}
